@@ -1,0 +1,102 @@
+{
+  "projectType": "general",
+  "projectName": "DWCS Course 2025-26",
+  "projectDescription": "Server-side web development course materials covering PHP, databases, web services, AJAX, and API integration.",
+  "theme": "linden",
+  "primaryColor": "#0066CC",
+  "lightColor": "#4A90E2",
+  "darkColor": "#003D7A",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "course-overview",
+          "setup"
+        ]
+      },
+      {
+        "group": "PHP Fundamentals",
+        "pages": [
+          "php-fundamentals/basics",
+          "php-fundamentals/forms-validation",
+          "php-fundamentals/arrays-functions"
+        ]
+      },
+      {
+        "group": "Database Programming",
+        "pages": [
+          "database/pdo-introduction",
+          "database/mysql-integration",
+          "database/crud-operations",
+          "database/advanced-queries"
+        ]
+      },
+      {
+        "group": "Session Management",
+        "pages": [
+          "sessions/sessions-cookies",
+          "sessions/authentication",
+          "sessions/blade-templates",
+          "sessions/shopping-cart"
+        ]
+      },
+      {
+        "group": "Web Services",
+        "pages": [
+          "web-services/soap-introduction",
+          "web-services/rest-apis",
+          "web-services/wsdl-generation",
+          "web-services/consuming-services"
+        ]
+      },
+      {
+        "group": "AJAX & Jaxon",
+        "pages": [
+          "ajax/xmlhttprequest",
+          "ajax/asynchronous-requests",
+          "ajax/jaxon-library",
+          "ajax/interactive-applications"
+        ]
+      },
+      {
+        "group": "API Integration",
+        "pages": [
+          "api-integration/curl-basics",
+          "api-integration/aemet-api",
+          "api-integration/weather-apis",
+          "api-integration/external-services"
+        ]
+      },
+      {
+        "group": "Assignments & Exams",
+        "pages": [
+          "assignments/overview",
+          "assignments/exam-samples",
+          "assignments/project-guidelines"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "PHP server-side programming",
+    "PDO database integration with MySQL",
+    "Session and cookie management",
+    "SOAP and REST web services",
+    "AJAX and Jaxon framework",
+    "External API consumption",
+    "Blade templating engine",
+    "Shopping cart implementation"
+  ],
+  "publicApiSurface": [
+    "PDO database connection and CRUD operations",
+    "Session management functions",
+    "SOAP service generation with php2wsdl",
+    "REST API endpoints",
+    "XMLHttpRequest AJAX calls",
+    "Jaxon callable classes",
+    "cURL API requests",
+    "Blade template rendering"
+  ]
+}
