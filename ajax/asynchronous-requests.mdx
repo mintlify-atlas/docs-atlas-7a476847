@@ -1,0 +1,447 @@
+---
+title: Asynchronous Request Patterns
+description: Master asynchronous programming patterns for AJAX requests and response handling
+---
+
+## Understanding Asynchronous Requests
+
+Asynchronous requests allow your web application to communicate with the server without blocking the user interface. This enables a smooth, responsive user experience where users can continue interacting with the page while data loads in the background.
+
+<Note>
+The key difference between synchronous and asynchronous requests is that async requests don't block code execution. The JavaScript continues running while waiting for the server response.
+</Note>
+
+## The Asynchronous Flow
+
+<Steps>
+  <Step title="Initiate the request">
+    JavaScript sends an HTTP request to the server and continues executing.
+  </Step>
+  
+  <Step title="User continues interacting">
+    The page remains responsive while waiting for the server response.
+  </Step>
+  
+  <Step title="Receive the response">
+    When the server responds, a callback function processes the data.
+  </Step>
+  
+  <Step title="Update the UI">
+    The DOM is updated with the new data without reloading the page.
+  </Step>
+</Steps>
+
+## Callback Pattern
+
+The traditional approach to handling asynchronous responses uses callback functions:
+
+```javascript
+let peticion;
+
+const iniciar = () => {
+  peticion = new XMLHttpRequest();
+  peticion.open('GET', "fecha.php"); 
+  peticion.send();
+  
+  // The callback function is registered
+  peticion.addEventListener("load", cargada);
+  
+  // Code continues executing here immediately
+  console.log("Request sent, but response not received yet!");
+}
+
+// This callback executes when the response arrives
+const cargada = () => {
+  console.log("Now we have the response!");
+  document.getElementById("resultados").innerText = peticion.responseText;
+}
+
+window.addEventListener("load", iniciar, false);
+```
+
+## Data Formats
+
+### Plain Text
+
+The simplest format, suitable for basic messages:
+
+```javascript
+const cargada = () => {
+  document.getElementById("resultados").innerText = peticion.responseText;
+}
+```
+
+### HTML
+
+Receive formatted HTML from the server and inject it into the DOM:
+
+```javascript
+const cargada = () => {
+  document.getElementById("resultados").innerHTML = peticion.responseText;
+}
+```
+
+```php
+<?php
+  echo "<h2>Hello from the server!</h2>";
+  echo "<p>The current time is " . date("H:i:s") . "</p>";
+?>
+```
+
+### XML
+
+Parse structured XML data from the server:
+
+<CodeGroup>
+```javascript index.html
+let peticion;
+
+const iniciar = () => {
+  peticion = new XMLHttpRequest();
+  peticion.open('GET', "datosxml.php"); 
+  peticion.send();
+  peticion.addEventListener("load", cargada);
+}
+
+const cargada = () => {
+  let resultados = '';
+  let cds = peticion.responseXML.documentElement.getElementsByTagName("CD");
+  
+  resultados += '<ul>';
+  for (let i = 0; i < cds.length; i++) {
+    resultados += `<li><b>CD nº ${i + 1}</b><ul>`;
+    resultados += `<li><b>Título:</b> ${cds[i].getElementsByTagName('TITLE')[0].innerHTML}</li>`;
+    resultados += `<li><b>Artista:</b> ${cds[i].getElementsByTagName('ARTIST')[0].innerHTML}</li>`;
+    resultados += `<li><b>País:</b> ${cds[i].getElementsByTagName('COUNTRY')[0].innerHTML}</li>`;
+    resultados += `<li><b>Compañía:</b> ${cds[i].getElementsByTagName('COMPANY')[0].innerHTML}</li>`;
+    resultados += `<li><b>Precio:</b> ${cds[i].getElementsByTagName('PRICE')[0].innerHTML}</li>`;
+    resultados += `<li><b>Año:</b> ${cds[i].getElementsByTagName('YEAR')[0].innerHTML}</li>`;
+    resultados += `</li></ul>`;
+  }
+  resultados += '</ul>';
+  
+  document.getElementById("resultados").innerHTML = resultados;
+}
+
+window.addEventListener("load", iniciar, false);
+```
+
+```php datosxml.php
+<?php
+// Indicar al navegador que va a recibir contenido XML
+header("Content-Type: text/xml"); 
+
+$ficheroxml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
+$ficheroxml .= "
+<CATALOG>
+  <CD>
+    <TITLE>Empire Burlesque</TITLE>
+    <ARTIST>Bob Dylan</ARTIST>
+    <COUNTRY>USA</COUNTRY>
+    <COMPANY>Columbia</COMPANY>
+    <PRICE>10.90</PRICE>
+    <YEAR>1985</YEAR>
+  </CD>
+  <CD>
+    <TITLE>Hide your heart</TITLE>
+    <ARTIST>Bonnie Tyler</ARTIST>
+    <COUNTRY>UK</COUNTRY>
+    <COMPANY>CBS Records</COMPANY>
+    <PRICE>9.90</PRICE>
+    <YEAR>1988</YEAR>
+  </CD>
+  <CD>
+    <TITLE>Greatest Hits</TITLE>
+    <ARTIST>Dolly Parton</ARTIST>
+    <COUNTRY>USA</COUNTRY>
+    <COMPANY>RCA</COMPANY>
+    <PRICE>9.90</PRICE>
+    <YEAR>1982</YEAR>
+  </CD>
+  <CD>
+    <TITLE>Still got the blues</TITLE>
+    <ARTIST>Gary Moore</ARTIST>
+    <COUNTRY>UK</COUNTRY>
+    <COMPANY>Virgin records</COMPANY>
+    <PRICE>10.20</PRICE>
+    <YEAR>1990</YEAR>
+  </CD>
+</CATALOG>";
+
+echo $ficheroxml;
+?>
+```
+</CodeGroup>
+
+### JSON
+
+JSON is the most popular format for modern web applications:
+
+<CodeGroup>
+```javascript index.html
+let peticion;
+
+const iniciar = () => {
+  peticion = new XMLHttpRequest();
+  peticion.open('GET', "datosjson.php"); 
+  peticion.send();
+  peticion.addEventListener("load", cargada);
+}
+
+const cargada = () => {
+  let resultados = '';
+  // Parse JSON response
+  let cds = JSON.parse(peticion.responseText);
+  
+  resultados += '<ul>';
+  for (let i = 0; i < cds.length; i++) {
+    resultados += `<li><b>CD nº ${i + 1}</b><ul>`;
+    resultados += `<li><b>Título:</b> ${cds[i].title}</li>`;
+    resultados += `<li><b>Artista:</b> ${cds[i].artist}</li>`;
+    resultados += `<li><b>País:</b> ${cds[i].country}</li>`;
+    resultados += `<li><b>Compañía:</b> ${cds[i].company}</li>`;
+    resultados += `<li><b>Precio:</b> ${cds[i].price}</li>`;
+    resultados += `<li><b>Año:</b> ${cds[i].year}</li>`;
+    resultados += `</li></ul>`;
+  }
+  resultados += '</ul>';
+  
+  document.getElementById("resultados").innerHTML = resultados;
+}
+
+window.addEventListener("load", iniciar, false);
+```
+
+```php datosjson.php
+<?php
+  // Cabecera para indicar que vamos a enviar datos JSON
+  header('Content-Type: application/json');
+
+  $datosjson = "[
+    {
+      \"title\": \"Empire Burlesque\",
+      \"artist\": \"Bob Dylan\",
+      \"country\": \"USA\",
+      \"company\": \"Columbia\",
+      \"price\": 10.90,
+      \"year\": 1985
+    },
+    {
+      \"title\": \"Hide your heart\",
+      \"artist\": \"Bonnie Tyler\",
+      \"country\": \"UK\",
+      \"company\": \"CBS Records\",
+      \"price\": 9.90,
+      \"year\": 1988
+    },
+    {
+      \"title\": \"Greatest Hits\",
+      \"artist\": \"Dolly Parton\",
+      \"country\": \"USA\",
+      \"company\": \"RCA\",
+      \"price\": 9.90,
+      \"year\": 1982
+    },
+    {
+      \"title\": \"Still got the blues\",
+      \"artist\": \"Gary Moore\",
+      \"country\": \"UK\",
+      \"company\": \"Virgin records\",
+      \"price\": 10.20,
+      \"year\": 1990
+    }
+  ]";
+  
+  echo $datosjson;
+?>
+```
+</CodeGroup>
+
+<Warning>
+Always validate and sanitize JSON data on both the client and server sides to prevent security vulnerabilities.
+</Warning>
+
+## jQuery AJAX Shortcuts
+
+While XMLHttpRequest provides full control, jQuery offers convenient shortcuts:
+
+### $.ajax() Method
+
+```javascript
+$(document).ready(() => {
+  $.ajax({
+    url: 'fecha.php',
+    type: 'GET',
+    async: true,
+    success: (respuesta) => {
+      $("#resultados").text(respuesta);
+      $("#estado").toggleClass('cargada');
+      $("#estado").text("Cargada.");
+    },
+    error: (xhr, status, error) => {
+      console.error("Error: " + error);
+    }
+  });
+});
+```
+
+### $.post() Shorthand
+
+```javascript
+$(document).ready(() => {
+  $.post(
+    'procesar.php',
+    'nombre=Bob&apellidos=Esponja', 
+    (respuesta) => {
+      $("#resultados").html(respuesta);
+    }
+  );
+});
+```
+
+### $.get() Shorthand
+
+```javascript
+$.get('datos.php', { id: 123 }, (data) => {
+  console.log(data);
+});
+```
+
+### $.getJSON() for JSON Data
+
+```javascript
+$.getJSON('datosjson.php', (cds) => {
+  cds.forEach((cd, index) => {
+    console.log(`${index + 1}. ${cd.title} by ${cd.artist}`);
+  });
+});
+```
+
+## Error Handling
+
+Always implement proper error handling for robust applications:
+
+```javascript
+let peticion;
+
+const iniciar = () => {
+  peticion = new XMLHttpRequest();
+  peticion.open('GET', "datos.php");
+  
+  // Success handler
+  peticion.addEventListener("load", () => {
+    if (peticion.status === 200) {
+      document.getElementById("resultados").innerText = peticion.responseText;
+    } else {
+      mostrarError(`Server error: ${peticion.status}`);
+    }
+  });
+  
+  // Error handler
+  peticion.addEventListener("error", () => {
+    mostrarError("Network error occurred");
+  });
+  
+  // Timeout handler
+  peticion.addEventListener("timeout", () => {
+    mostrarError("Request timed out");
+  });
+  
+  peticion.timeout = 5000; // 5 second timeout
+  peticion.send();
+}
+
+const mostrarError = (mensaje) => {
+  document.getElementById("estado").innerText = mensaje;
+  document.getElementById("estado").classList.add('error');
+}
+```
+
+## Loading States
+
+Provide visual feedback during asynchronous operations:
+
+```javascript
+const iniciar = () => {
+  // Show loading state
+  document.getElementById("estado").classList = ['cargando'];
+  document.getElementById("estado").innerText = "Cargando...";
+  document.getElementById("resultados").innerHTML = "<p>Loading data...</p>";
+  
+  peticion = new XMLHttpRequest();
+  peticion.open('GET', "datos.php"); 
+  peticion.send();
+  peticion.addEventListener("load", cargada);
+}
+
+const cargada = () => {
+  // Update to loaded state
+  document.getElementById("resultados").innerText = peticion.responseText;
+  document.getElementById("estado").classList = ['cargada'];
+  document.getElementById("estado").innerText = "Cargada.";
+}
+```
+
+```css
+.cargando {
+  background: #ff9800;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.cargada {
+  background: #4caf50;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.error {
+  background: #f44336;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Set appropriate timeouts">
+    Always configure timeout values to prevent requests from hanging indefinitely.
+  </Step>
+  
+  <Step title="Handle all response codes">
+    Check HTTP status codes and handle both success and error cases.
+  </Step>
+  
+  <Step title="Provide user feedback">
+    Show loading indicators and error messages to keep users informed.
+  </Step>
+  
+  <Step title="Use proper content types">
+    Set correct Content-Type headers on the server for different data formats.
+  </Step>
+  
+  <Step title="Sanitize data">
+    Always validate and sanitize data on both client and server sides.
+  </Step>
+</Steps>
+
+## Common Pitfalls
+
+<Warning>
+**Cross-Origin Requests**: AJAX requests are subject to Same-Origin Policy. Use CORS headers on the server to allow cross-origin requests when needed.
+</Warning>
+
+<Note>
+**Caching Issues**: Browsers may cache GET requests. Add cache-busting parameters or use appropriate Cache-Control headers if you need fresh data every time.
+</Note>
+
+## Next Steps
+
+Explore more advanced AJAX patterns:
+- [Jaxon library for simplified PHP integration](/ajax/jaxon-library)
+- [Building interactive applications](/ajax/interactive-applications)
+- Modern alternatives like Fetch API and async/await

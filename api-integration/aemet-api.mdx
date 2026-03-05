@@ -1,0 +1,411 @@
+---
+title: AEMET API Integration
+description: Integrate Spanish weather data using the AEMET OpenData API
+---
+
+# AEMET API Integration
+
+The Agencia Estatal de Meteorología (AEMET) provides free access to Spanish weather data through their OpenData API. This guide shows you how to integrate AEMET weather data into your PHP applications.
+
+## About AEMET OpenData
+
+AEMET OpenData provides:
+- Real-time weather observations
+- Weather forecasts for Spanish locations
+- Historical climatological data
+- Weather station inventory
+- Meteorological warnings and alerts
+
+<Note>
+You need a free API key to access AEMET OpenData. Register at [opendata.aemet.es](https://opendata.aemet.es/centrodedescargas/inicio)
+</Note>
+
+## Getting Started
+
+### Request Your API Key
+
+<Steps>
+  <Step title="Register">
+    Visit [AEMET OpenData](https://opendata.aemet.es/centrodedescargas/inicio) and create an account
+  </Step>
+
+  <Step title="Generate API Key">
+    Navigate to your profile and generate a new API key
+  </Step>
+
+  <Step title="Store Securely">
+    Save your API key in a secure configuration file (never commit to version control)
+    
+    ```php
+    // claves.inc.php
+    <?php
+    $keyAEMET = "your_api_key_here";
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+Never expose your API key in public repositories. Use environment variables or separate configuration files that are excluded from version control.
+</Warning>
+
+## Basic AEMET API Request
+
+Here's a complete example that retrieves the inventory of weather stations:
+
+```php
+<?php
+
+// https://opendata.aemet.es/centrodedescargas/ejemProgramas?
+
+$curl = curl_init();
+
+// Load API key from secure file
+include("../../claves.inc.php");
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => "https://opendata.aemet.es/opendata/api/valores/climatologicos/inventarioestaciones/todasestaciones/?api_key=" . $keyAEMET, 
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "GET",
+  CURLOPT_HTTPHEADER => array(
+    "cache-control: no-cache"
+  ),
+));
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  echo $response;
+}
+```
+
+## API Endpoint Structure
+
+AEMET API URLs follow this pattern:
+
+```
+https://opendata.aemet.es/opendata/api/{category}/{endpoint}?api_key={your_key}
+```
+
+### Common Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/prediccion/especifica/municipio/diaria/{codigo}` | Daily forecast for a municipality |
+| `/observacion/convencional/todas` | Current observations from all stations |
+| `/valores/climatologicos/inventarioestaciones/todasestaciones` | Weather station inventory |
+| `/prediccion/provincial/{provincia}` | Provincial weather forecast |
+| `/avisos_cap/ultimoelaborado/{area}` | Latest weather warnings |
+
+<Note>
+Municipality codes can be found in the AEMET documentation. For example, Vigo's code is `36057`.
+</Note>
+
+## Two-Step Data Retrieval
+
+AEMET API uses a two-step process:
+
+<Steps>
+  <Step title="Request Data URL">
+    First request returns metadata and a temporary URL to the actual data
+    
+    ```php
+    $response = curl_exec($curl);
+    $metadata = json_decode($response, true);
+    ```
+  </Step>
+
+  <Step title="Fetch Actual Data">
+    Use the `datos` URL from the metadata to get the actual weather data
+    
+    ```php
+    if (isset($metadata['datos'])) {
+      $dataUrl = $metadata['datos'];
+      
+      curl_setopt($curl, CURLOPT_URL, $dataUrl);
+      $weatherData = curl_exec($curl);
+      
+      $stations = json_decode($weatherData, true);
+    }
+    ```
+  </Step>
+</Steps>
+
+## Complete Example: Weather Forecast
+
+```php
+<?php
+
+function getAEMETForecast($municipalityCode, $apiKey) {
+  $curl = curl_init();
+  
+  // Step 1: Get data URL
+  $url = "https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/diaria/" . $municipalityCode;
+  $url .= "?api_key=" . $apiKey;
+  
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => $url,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_CUSTOMREQUEST => "GET",
+    CURLOPT_HTTPHEADER => array("cache-control: no-cache"),
+  ));
+  
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+  
+  if ($err) {
+    curl_close($curl);
+    return array('error' => $err);
+  }
+  
+  $metadata = json_decode($response, true);
+  
+  // Check for API errors
+  if ($metadata['estado'] != 200) {
+    curl_close($curl);
+    return array('error' => $metadata['descripcion']);
+  }
+  
+  // Step 2: Get actual forecast data
+  curl_setopt($curl, CURLOPT_URL, $metadata['datos']);
+  $forecastResponse = curl_exec($curl);
+  curl_close($curl);
+  
+  return json_decode($forecastResponse, true);
+}
+
+// Usage
+include("claves.inc.php");
+$forecast = getAEMETForecast("36057", $keyAEMET); // Vigo
+
+if (isset($forecast['error'])) {
+  echo "Error: " . $forecast['error'];
+} else {
+  print_r($forecast);
+}
+```
+
+## Debugging AEMET Requests
+
+When developing, use debugging options to inspect the API communication:
+
+```php
+<?php
+
+$curl = curl_init();
+
+include("../../claves.inc.php");
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => "https://opendata.aemet.es/opendata/api/valores/climatologicos/inventarioestaciones/todasestaciones/?api_key=" . $keyAEMET, 
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "GET",
+  CURLOPT_HTTPHEADER => array(
+    "cache-control: no-cache"
+  ),
+));
+
+// Enable debugging options
+curl_setopt($curl, CURLOPT_CERTINFO, true);
+// curl_setopt($curl, CURLOPT_VERBOSE, true); // Uncomment for very detailed output
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+
+// Display transfer information
+var_dump(curl_getinfo($curl));
+
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  echo $response;
+}
+```
+
+### Understanding curl_getinfo() Output
+
+The `curl_getinfo()` function returns useful debugging information:
+
+```php
+array(
+  'url' => 'https://opendata.aemet.es/...',
+  'content_type' => 'application/json',
+  'http_code' => 200,
+  'header_size' => 487,
+  'request_size' => 156,
+  'total_time' => 0.742,
+  'namelookup_time' => 0.012,
+  'connect_time' => 0.098,
+  'pretransfer_time' => 0.347,
+  // ... more fields
+)
+```
+
+## Handling API Responses
+
+### Response Structure
+
+AEMET API responses follow this structure:
+
+```json
+{
+  "descripcion": "exito",
+  "estado": 200,
+  "datos": "https://opendata.aemet.es/opendata/sh/...",
+  "metadatos": "https://opendata.aemet.es/opendata/sh/..."
+}
+```
+
+### Processing Station Data
+
+```php
+$response = curl_exec($curl);
+$metadata = json_decode($response, true);
+
+if ($metadata['estado'] == 200) {
+  // Fetch actual data
+  curl_setopt($curl, CURLOPT_URL, $metadata['datos']);
+  $dataResponse = curl_exec($curl);
+  
+  $stations = json_decode($dataResponse, true);
+  
+  // Process each station
+  foreach ($stations as $station) {
+    echo "Station: " . $station['nombre'] . "\n";
+    echo "Province: " . $station['provincia'] . "\n";
+    echo "Coordinates: " . $station['latitud'] . ", " . $station['longitud'] . "\n\n";
+  }
+}
+```
+
+## Error Handling
+
+Implement robust error handling for production applications:
+
+```php
+function safeAEMETRequest($url, $apiKey) {
+  $curl = curl_init();
+  
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => $url . "?api_key=" . $apiKey,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_CUSTOMREQUEST => "GET",
+  ));
+  
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+  $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+  
+  curl_close($curl);
+  
+  // Check for cURL errors
+  if ($err) {
+    return array(
+      'success' => false,
+      'error' => 'Connection error: ' . $err
+    );
+  }
+  
+  // Check HTTP status
+  if ($httpCode >= 400) {
+    return array(
+      'success' => false,
+      'error' => 'HTTP error: ' . $httpCode
+    );
+  }
+  
+  // Parse JSON
+  $data = json_decode($response, true);
+  
+  if (json_last_error() !== JSON_ERROR_NONE) {
+    return array(
+      'success' => false,
+      'error' => 'JSON parse error: ' . json_last_error_msg()
+    );
+  }
+  
+  // Check AEMET API status
+  if (isset($data['estado']) && $data['estado'] != 200) {
+    return array(
+      'success' => false,
+      'error' => 'API error: ' . $data['descripcion']
+    );
+  }
+  
+  return array(
+    'success' => true,
+    'data' => $data
+  );
+}
+```
+
+## Rate Limits and Best Practices
+
+<Warning>
+AEMET API has rate limits. Excessive requests may result in temporary blocking.
+</Warning>
+
+### Best Practices
+
+1. **Cache responses** - Store weather data locally to reduce API calls
+2. **Implement retry logic** - Handle temporary failures gracefully
+3. **Use appropriate timeouts** - Set reasonable timeout values (30 seconds)
+4. **Respect rate limits** - Add delays between consecutive requests
+5. **Store API keys securely** - Never hardcode or commit API keys
+
+### Example: Simple Caching
+
+```php
+function getCachedWeather($municipalityCode, $apiKey, $cacheTime = 3600) {
+  $cacheFile = "cache/weather_" . $municipalityCode . ".json";
+  
+  // Check if cache exists and is fresh
+  if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTime) {
+    return json_decode(file_get_contents($cacheFile), true);
+  }
+  
+  // Fetch fresh data
+  $weather = getAEMETForecast($municipalityCode, $apiKey);
+  
+  // Cache the result
+  if (!isset($weather['error'])) {
+    file_put_contents($cacheFile, json_encode($weather));
+  }
+  
+  return $weather;
+}
+```
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="AEMET OpenData Documentation" icon="book" href="https://opendata.aemet.es/centrodedescargas/productosAEMET">
+    Official API documentation and examples
+  </Card>
+  <Card title="Weather APIs" icon="cloud" href="/api-integration/weather-apis">
+    Compare with other weather APIs
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+Now that you understand AEMET integration, explore other weather APIs:
+
+- **OpenWeatherMap** - Global weather data with more detailed forecasts
+- **Open-Meteo** - Free weather API with no API key required
+- **Custom integrations** - Combine multiple weather sources

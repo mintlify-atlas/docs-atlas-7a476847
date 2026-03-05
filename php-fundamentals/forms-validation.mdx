@@ -1,0 +1,648 @@
+---
+title: "Forms & Validation"
+description: "Master PHP form handling, validation techniques, and data sanitization with practical examples from the course"
+---
+
+## Introduction to Form Handling
+
+Forms are the primary way users interact with PHP applications. Proper form handling and validation are crucial for security and user experience.
+
+## HTTP Methods: GET vs POST
+
+PHP supports two main HTTP methods for form submission:
+
+<Tabs>
+  <Tab title="GET Method">
+    ```php
+    <form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" name="nombre" />
+        <button type="submit">Enviar</button>
+    </form>
+    
+    <?php
+    // Access GET data
+    $nombre = $_GET['nombre'];
+    echo "Hola, $nombre";
+    ?>
+    ```
+    
+    **Characteristics:**
+    - Data visible in URL
+    - Can be bookmarked
+    - Limited data size
+    - Use for searches, filters
+  </Tab>
+  
+  <Tab title="POST Method">
+    ```php
+    <form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="post">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" />
+        <button type="submit">Login</button>
+    </form>
+    
+    <?php
+    // Access POST data
+    $password = $_POST['password'];
+    ?>
+    ```
+    
+    **Characteristics:**
+    - Data hidden from URL
+    - Cannot be bookmarked
+    - No data size limit
+    - Use for sensitive data, modifications
+  </Tab>
+</Tabs>
+
+<Warning>
+Never use GET for sensitive data like passwords or personal information!
+</Warning>
+
+## Form Self-Submission
+
+Forms can submit to the same page using `$_SERVER['PHP_SELF']`:
+
+```php
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Self-Submitting Form</title>
+</head>
+<body>
+    <form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
+        <p>
+            <label for="cuenta">Número de cuenta:</label>
+            <input type="text" id="cuenta" name="cuenta" />
+        </p>
+        <p>
+            <label for="cantidad">Cantidad hipoteca:</label>
+            <input type="text" id="cantidad" name="cantidad" />
+        </p>
+        <button type="submit">Enviar</button>
+        <button type="reset">
+            <a href="<?php echo $_SERVER['PHP_SELF'] ?>" style="text-decoration: none;">
+                Borrar
+            </a>
+        </button>
+    </form>
+</body>
+</html>
+```
+
+## Checking Form Submission
+
+Determine if a form has been submitted by checking button values or request method:
+
+<CodeGroup>
+
+```php Button Detection
+<?php
+$botonEnviar = !isset($_GET['botonEnviar']) || 
+               $_GET['botonEnviar'] != "Enviar" ? false : true;
+$botonReset = !isset($_GET['botonReset']) || 
+              $_GET['botonReset'] != "Reset" ? false : true;
+
+if ($botonEnviar) {
+    // Process form submission
+    echo "Form submitted";
+}
+
+if ($botonReset) {
+    // Clear form data
+    unset($_GET['campo1']);
+    unset($_GET['campo2']);
+}
+?>
+```
+
+```php Hidden Field Tracking
+<?php
+$primeraVez = false;
+
+// Add hidden field to track first visit
+echo '<input type="hidden" name="primeraVez" value="false" />';
+
+if (!isset($_GET['primeraVez'])) {
+    $primeraVez = true;
+} else {
+    // Form has been submitted before
+    $primeraVez = false;
+}
+
+// Show error only if not first visit
+if (!$primeraVez && empty($_GET['dato'])) {
+    echo '<span style="color: red">Campo requerido</span>';
+}
+?>
+```
+
+</CodeGroup>
+
+## Input Validation
+
+Always validate user input before processing:
+
+### Required Field Validation
+
+```php
+<?php
+$entero = empty($_GET['entero']) ? "" : $_GET['entero'];
+
+if ($entero === "") {
+    if (!empty($_GET['botonEnviar'])) {
+        echo '<p style="color: red">Introduzca el entero solicitado, por favor</p>';
+    } else {
+        echo '<p>&nbsp;</p>';
+    }
+    echo '<p id="digitos">&nbsp;</p>';
+} else {
+    // Process the valid input
+    echo "<p>Valor recibido: $entero</p>";
+}
+?>
+```
+
+### Multiple Field Validation
+
+```php
+<?php
+$numero1 = empty($_GET['numero1']) ? "" : $_GET['numero1'];
+$numero2 = empty($_GET['numero2']) ? "" : $_GET['numero2'];
+
+if ($numero1 === "" || $numero2 === "") {
+    echo '<p style="color: red">Rellene ambos campos, por favor</p>';
+    echo <<<MARCA
+    <p id="suma">&nbsp;</p>
+    <p id="resta">&nbsp;</p>
+    <p id="producto">&nbsp;</p>  
+    <p id="resto">&nbsp;</p>    
+MARCA;
+} else {
+    echo "<p id='suma'>La suma es: " . ($numero1 + $numero2) . "</p>";
+    echo "<p id='resta'>La resta es: " . ($numero1 - $numero2) . "</p>";
+    echo "<p id='producto'>El producto es: " . ($numero1 * $numero2) . "</p>";
+    echo "<p id='resto'>El resto es: " . ($numero1 % $numero2) . "</p>";
+}
+?>
+```
+
+## Input Sanitization
+
+Sanitization removes or escapes dangerous characters from user input.
+
+### Regular Expression Validation
+
+Create reusable validation functions:
+
+```php
+<?php
+/**
+ * Validate integer format (doesn't check ranges)
+ * 
+ * @param string $cadena Input string to validate
+ * @return string Original string if valid, "NOVALIDO" otherwise
+ */
+function formatoEnteroValido(string $cadena) {
+    if (preg_match("/^[+-]?\d+$/", $cadena) === 1) {
+        return $cadena;
+    } else {
+        return "NOVALIDO";
+    }
+}
+
+// Usage
+$numero = !isset($_GET['numero']) || 
+          preg_match("/^[1-9]\d*$/", $_GET['numero']) !== 1 
+          ? "INVALIDO" 
+          : intval($_GET['numero']);
+
+if ($numero === "INVALIDO") {
+    echo '<p style="color: red">Formato de número inválido</p>';
+} else {
+    // Process valid number
+    echo "Número válido: $numero";
+}
+?>
+```
+
+### Type Conversion and Validation
+
+```php
+<?php
+// Validate and convert to integer
+$estado = !isset($_GET['estado']) ? 0 : intval($_GET['estado']);
+
+// Validate and convert to float
+$coeficienteA = empty($_GET['coeficienteA']) ? "" : floatval($_GET['coeficienteA']);
+
+// Check type after conversion
+if ($coeficienteA === "" || !(is_float($coeficienteA) || is_int($coeficienteA))) {
+    echo '<p style="color: red">Por favor, introduzca un número válido</p>';
+}
+?>
+```
+
+## Range Validation
+
+Validate that numeric inputs are within acceptable ranges:
+
+```php
+<?php
+$entero = empty($_GET['entero']) ? "" : $_GET['entero'];
+
+if ($entero === "") {
+    echo '<p style="color: red">Introduzca el entero solicitado</p>';
+} else {
+    if ($entero >= 0) {
+        // Check maximum digits (5 digits max)
+        $temp = $entero;
+        $digitCount = 0;
+        
+        while ($temp > 0) {
+            $temp = floor($temp / 10);
+            $digitCount++;
+        }
+        
+        if ($digitCount > 5) {
+            echo "<p style='color: red'>El número debe tener 5 dígitos o menos</p>";
+        } else {
+            echo "<p>Número válido: $entero</p>";
+        }
+    } else {
+        echo "<p style='color: red'>El número debe ser positivo</p>";
+    }
+}
+?>
+```
+
+## State Management with Hidden Fields
+
+Use hidden fields to maintain state across form submissions:
+
+<Steps>
+  <Step title="Define Initial State">
+    ```php
+    <?php
+    $estado = !isset($_GET['estado']) ? 0 : intval($_GET['estado']);
+    $contador = !isset($_GET['contador']) ? 0 : intval($_GET['contador']);
+    $sumatorio = !isset($_GET['sumatorio']) ? 0 : intval($_GET['sumatorio']);
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Include Hidden Fields in Form">
+    ```php
+    <input type="hidden" name="estado" value="<?php echo $estado; ?>"/>
+    <input type="hidden" name="contador" value="<?php echo $contador; ?>"/>
+    <input type="hidden" name="sumatorio" value="<?php echo $sumatorio; ?>"/>
+    ```
+  </Step>
+  
+  <Step title="Process Based on State">
+    ```php
+    <?php
+    switch($estado) {
+        case 0:
+            $estado = 1;
+            include "formulario1.php";
+            break;
+        
+        case 1:
+            if ($numero === "INVALIDO") {
+                include "formulario2.php";
+            } else {
+                $contador++;
+                $sumatorio += $numero;
+                include "formulario3.php";
+            }
+            break;
+        
+        default:
+            throw new Exception("Estado no válido: " . $estado);
+    }
+    ?>
+    ```
+  </Step>
+</Steps>
+
+## Form State Machine Pattern
+
+The course uses a state machine pattern for complex forms:
+
+```php
+<?php
+$estado = !isset($_GET['estado']) ? 0 : intval($_GET['estado']);
+$numero = !isset($_GET['numero']) || 
+          preg_match("/^[1-9]\d*$/", $_GET['numero']) !== 1 
+          ? "INVALIDO" 
+          : intval($_GET['numero']);
+
+switch($estado) {
+    case 0:
+        // Initial state: show first form
+        $estado = 1;
+        include "formularioInicio.php";
+        break;
+
+    case 1:
+        // Processing state
+        $estado = 1;
+        if ($numero === "INVALIDO") {
+            // Show error form
+            include "formularioConErrores.php";
+        } else {
+            // Show results
+            include "formularioResultados.php";
+        }
+        break;
+
+    default:
+        throw new Exception("Estado no válido: " . $estado);
+}
+?>
+```
+
+## Preserving Form Values
+
+Maintain form values after submission for better user experience:
+
+```php
+<?php
+$totalMensualVentas = empty($_GET['totalMensualVentas']) 
+                      ? 0.00 
+                      : floatval($_GET['totalMensualVentas']);
+?>
+
+<form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="get">
+    <p>
+        <label for="totalMensualVentas">Importe mensual total de ventas:</label>
+        <input type="number" 
+               min="0" 
+               step="any" 
+               id="totalMensualVentas" 
+               name="totalMensualVentas" 
+               value="<?php echo $totalMensualVentas; ?>" />
+    </p>
+</form>
+```
+
+## Select Dropdowns
+
+Handle select elements and preserve selected values:
+
+```php
+<?php
+$mesSeleccionado = !isset($_GET['nombreMes']) ? 'Enero' : $_GET['nombreMes'];
+$meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+?>
+
+<select id="nombreMes" name="nombreMes">
+    <?php foreach ($meses as $mes): ?>
+        <option value="<?php echo $mes; ?>" 
+                <?php echo $mesSeleccionado === $mes ? 'selected' : ''; ?>>
+            <?php echo $mes; ?>
+        </option>
+    <?php endforeach; ?>
+</select>
+```
+
+## Practical Example: Tax Calculator
+
+Here's a complete form validation example from the course:
+
+```php
+<?php
+define('IMPUESTO_ESTATAL', 0.05);
+define('IMPUESTO_AUTONOMICO', 0.04);
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Impuestos</title>
+</head>
+<body>
+    <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="get">
+        <div class="entrada">
+<?php 
+    $primeraVez = false;
+    echo '<input type="hidden" name="primeraVez" value="false" />';
+
+    if (!empty($_GET['botonReset'])) {
+        unset($_GET['primeraVez']);
+    }
+
+    if (!isset($_GET['primeraVez'])) {
+        $totalMensualVentas = 0.00;
+        $primeraVez = true;
+    } else {
+        $totalMensualVentas = floatval($_GET['totalMensualVentas']);
+    }
+    
+    echo <<<MARCA
+        <p>
+            <label for="totalMensualVentas">Importe mensual total de ventas:</label>
+            <input type="number" 
+                   min="0" 
+                   step="any" 
+                   id="totalMensualVentas" 
+                   name="totalMensualVentas" 
+                   value="{$totalMensualVentas}" />
+        </p>
+MARCA;
+
+    if (!$primeraVez && $totalMensualVentas == 0) {
+        echo "<span style='color: red'>Introduzca el importe, por favor</span>";
+    }
+?>
+        <p>
+            <label for="nombreMes">Nombre del mes:</label>
+            <select id="nombreMes" name="nombreMes">
+                <option value="Enero">Enero</option>
+                <option value="Febrero">Febrero</option>
+                <option value="Marzo">Marzo</option>
+                <!-- ... más meses ... -->
+            </select>
+        </p>
+        </div>
+<?php
+    if (!$primeraVez) {
+        $totalMensualVentas = floatval($_GET['totalMensualVentas']);
+        $liquido = $totalMensualVentas / (1 + IMPUESTO_AUTONOMICO + IMPUESTO_ESTATAL);
+        $impuestosAutonomicos = $liquido * IMPUESTO_AUTONOMICO;
+        $impuestosEstatales = $liquido * IMPUESTO_ESTATAL;
+        $impuestosTotales = $liquido * (IMPUESTO_AUTONOMICO + IMPUESTO_ESTATAL);
+    } else {
+        $totalMensualVentas = 0.0;
+        $liquido = 0.0;
+        $impuestosAutonomicos = 0.0;
+        $impuestosEstatales = 0.0;
+        $impuestosTotales = 0.0;
+    }
+
+    // Format for display
+    $totalMensualVentas = number_format($totalMensualVentas, 2, ",", "");
+    $liquido = number_format($liquido, 2, ",", "");
+    $impuestosAutonomicos = number_format($impuestosAutonomicos, 2, ",", "");
+    $impuestosEstatales = number_format($impuestosEstatales, 2, ",", "");
+    $impuestosTotales = number_format($impuestosTotales, 2, ",", "");
+    
+    echo <<<MARCA
+    <div class="salida" style="font-family: monospace;">
+        <p>Total recaudado       : {$totalMensualVentas} €</p>
+        <p>Total líquido         : {$liquido} €</p>
+        <p>Impuestos autonómicos : {$impuestosAutonomicos} €</p>
+        <p>Impuestos estatales   : {$impuestosEstatales} €</p>
+        <p>Impuestos totales     : {$impuestosTotales} €</p>
+    </div>
+MARCA;
+?>
+        <button type="submit" name="botonEnviar" value="Enviar">Enviar</button>
+        <button type="submit" name="botonReset" value="Reset">Reset</button>
+    </form>
+</body>
+</html>
+```
+
+## Error Display Patterns
+
+<Tabs>
+  <Tab title="Inline Errors">
+    ```php
+    <?php
+    $email = empty($_POST['email']) ? "" : $_POST['email'];
+    
+    if (!empty($_POST['submit']) && $email === "") {
+        echo '<span style="color: red">Email requerido</span>';
+    }
+    ?>
+    
+    <input type="email" name="email" value="<?php echo $email; ?>" />
+    ```
+  </Tab>
+  
+  <Tab title="Error List">
+    ```php
+    <?php
+    $errores = [];
+    
+    if (empty($_POST['nombre'])) {
+        $errores[] = "El nombre es requerido";
+    }
+    if (empty($_POST['email'])) {
+        $errores[] = "El email es requerido";
+    }
+    
+    if (!empty($errores)) {
+        echo "<ul style='color: red'>";
+        foreach ($errores as $error) {
+            echo "<li>$error</li>";
+        }
+        echo "</ul>";
+    }
+    ?>
+    ```
+  </Tab>
+  
+  <Tab title="Placeholder Pattern">
+    ```php
+    <?php
+    if ($entero1 === "" || $entero2 === "" || $entero3 === "") {
+        if ($botonEnviar) {
+            echo '<p style="color: red">Rellene todos los campos</p>';
+        } else {
+            echo '<p>&nbsp;</p>';
+        }
+        echo <<<MARCA
+        <p id="suma">&nbsp;</p>
+        <p id="resta">&nbsp;</p>
+        <p id="producto">&nbsp;</p>
+    MARCA;
+    }
+    ?>
+    ```
+  </Tab>
+</Tabs>
+
+## Security Best Practices
+
+<Warning>
+Always follow these security practices when handling forms:
+</Warning>
+
+<Steps>
+  <Step title="Validate on Server Side">
+    Never rely solely on client-side validation. Always validate on the server:
+    
+    ```php
+    <?php
+    // Client-side validation can be bypassed
+    // Always validate server-side
+    if (!preg_match("/^[a-zA-Z\s]+$/", $_POST['nombre'])) {
+        die("Nombre inválido");
+    }
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Sanitize Output">
+    Use `htmlspecialchars()` to prevent XSS attacks:
+    
+    ```php
+    <?php
+    $nombre = htmlspecialchars($_GET['nombre'], ENT_QUOTES, 'UTF-8');
+    echo "Hola, $nombre";
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Use Type Casting">
+    Convert to expected types to prevent type juggling attacks:
+    
+    ```php
+    <?php
+    $id = intval($_GET['id']);
+    $precio = floatval($_POST['precio']);
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Validate File Uploads">
+    For file uploads, check type, size, and content:
+    
+    ```php
+    <?php
+    $allowed = ['jpg', 'png', 'gif'];
+    $filename = $_FILES['imagen']['name'];
+    $ext = pathinfo($filename, PATHINFO_EXTENSION);
+    
+    if (!in_array($ext, $allowed)) {
+        die("Tipo de archivo no permitido");
+    }
+    ?>
+    ```
+  </Step>
+</Steps>
+
+## Testing Your Forms
+
+<Note>
+Always test forms with:
+- Empty submissions
+- Invalid data types
+- Boundary values (min/max)
+- Special characters
+- Very long inputs
+- SQL injection attempts
+- XSS attack vectors
+</Note>
+
+## Next Steps
+
+Now that you understand form handling and validation, learn about:
+- [Arrays & Functions](/php-fundamentals/arrays-functions) - Process collections of form data efficiently
+- [Database Integration](/database/mysql-basics) - Store validated form data persistently

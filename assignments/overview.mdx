@@ -1,0 +1,296 @@
+---
+title: "Assignments Overview"
+description: "Comprehensive guide to DWCS course assignments, grading structure, and submission guidelines"
+---
+
+# Assignments Overview
+
+This course uses a structured approach to assignments that combines practice exercises (BOLETINES) with graded projects (TAREAS) to reinforce web server-side development concepts.
+
+## Assignment Structure
+
+The course assignments are organized into two main categories:
+
+<CardGroup cols={2}>
+  <Card title="BOLETINES" icon="clipboard-list">
+    Practice exercises designed to reinforce concepts from each unit. Not graded but essential for exam preparation.
+  </Card>
+  <Card title="TAREAS" icon="laptop-code">
+    Graded projects that demonstrate mastery of unit concepts. These are your primary assessment tools.
+  </Card>
+</CardGroup>
+
+### BOLETINES (Practice Exercises)
+
+BOLETINES are non-graded practice exercises that accompany each unit. These help you:
+
+- Practice fundamental concepts
+- Prepare for TAREA projects
+- Build coding fluency with PHP
+- Test your understanding before exams
+
+<Note>
+  **Example**: TEMA-02 includes 10 different boletines (DWES-Boletin-01 through DWES-Boletin-10) covering PHP basics, arrays, forms, and more.
+</Note>
+
+### TAREAS (Graded Projects)
+
+TAREAS are comprehensive projects that count toward your final grade. Each TAREA builds on previous units and demonstrates:
+
+- Database design and implementation
+- CRUD operations
+- User authentication and sessions
+- Modern PHP development practices
+- Use of external libraries via Composer
+
+## TAREA Projects by Unit
+
+<Steps>
+  <Step title="TAREA-02: PHP Fundamentals">
+    Introduction to PHP programming with arrays, forms, and basic file operations.
+    
+    **Key Concepts:**
+    - Form processing
+    - Array manipulation
+    - File uploads
+    - Data validation
+  </Step>
+  
+  <Step title="TAREA-03: Advanced PHP">
+    Object-oriented programming and advanced PHP features.
+    
+    **Key Concepts:**
+    - Classes and objects
+    - Inheritance and polymorphism
+    - Namespaces
+    - Error handling
+  </Step>
+  
+  <Step title="TAREA-04: Database Integration">
+    Complete CRUD application with MySQL database using PDO.
+    
+    **Key Features:**
+    - Product management system (productos)
+    - Database schema with families, stores, and stock
+    - PDO prepared statements
+    - Foreign key relationships
+    - Bootstrap UI
+    
+    **Database Tables:**
+    - `tiendas` (stores)
+    - `familias` (product families)
+    - `productos` (products)
+    - `stocks` (inventory)
+  </Step>
+  
+  <Step title="TAREA-05: Sessions & Templating">
+    Two-part assignment focusing on sessions and modern templating.
+    
+    **Part 1:** Session management with shopping cart functionality
+    
+    **Part 2:** Integration of:
+    - Laravel Blade templating engine
+    - Faker library for test data generation
+    - Barcode generation with Milon/Barcode
+    - Composer autoloading (PSR-4)
+    
+    <Warning>
+      The Faker library has been updated. Use `fakerphp/faker` instead of the deprecated `fzaninotto/faker`.
+    </Warning>
+  </Step>
+  
+  <Step title="TAREA-06: Authentication & Authorization">
+    E-commerce system with user authentication and role management.
+    
+    **Key Features:**
+    - Employee authentication (`empleados` table)
+    - Customer registration and login (`clientes` table)
+    - Shopping cart with sessions
+    - Sales tracking (`ventas` table with ticket system)
+    - Password hashing
+    
+    **Database Schema Highlights:**
+    - Composite primary key for sales
+    - Foreign key constraints with cascade actions
+    - Timestamp tracking for transactions
+  </Step>
+  
+  <Step title="TAREA-07: AJAX & Asynchronous Operations">
+    Introduction to AJAX-based interactions using Jaxon PHP library.
+    
+    **Technologies:**
+    - Jaxon Core (~4.0)
+    - Asynchronous server requests
+    - Dynamic page updates without reload
+    - PSR-4 autoloading structure
+  </Step>
+  
+  <Step title="TAREA-08: API Integration">
+    Advanced project integrating third-party APIs and services.
+    
+    **Key Integrations:**
+    - Google APIs client library
+    - Google Cloud Logging
+    - Jaxon for AJAX operations
+    - Virtual host configuration for localhost
+    
+    <Note>
+      This assignment requires special Apache configuration. Google APIs don't accept subdomains of localhost (like `dwcs.localhost`), only `http://localhost`.
+    </Note>
+  </Step>
+</Steps>
+
+## Grading Structure
+
+### TAREA Evaluation Criteria
+
+Each TAREA is evaluated based on:
+
+<Accordion title="Code Quality (30%)">
+  - Clean, readable code
+  - Proper indentation and formatting
+  - Meaningful variable and function names
+  - Appropriate comments
+  - PSR-4 autoloading standards (when applicable)
+</Accordion>
+
+<Accordion title="Functionality (40%)">
+  - All required features implemented
+  - CRUD operations work correctly
+  - Proper error handling
+  - Data validation on client and server side
+  - Security measures (SQL injection prevention, XSS protection)
+</Accordion>
+
+<Accordion title="Database Design (20%)">
+  - Normalized database structure
+  - Appropriate data types
+  - Foreign key relationships
+  - Required diagrams included
+  - SQL scripts provided (schema and data)
+</Accordion>
+
+<Accordion title="Documentation (10%)">
+  - Database diagram (ER or relational model)
+  - Navigation diagram
+  - README with setup instructions
+  - Comments explaining complex logic
+</Accordion>
+
+## Submission Guidelines
+
+### Required Files
+
+Each TAREA submission must include:
+
+<Steps>
+  <Step title="Source Code">
+    - All PHP files organized in appropriate directories
+    - `composer.json` if using external libraries
+    - Configuration files (e.g., `conexion.php`)
+  </Step>
+  
+  <Step title="Database Files">
+    - `esquema.sql` - Database schema with table definitions
+    - `datos.sql` - Sample data for testing
+    - Database diagram as PNG or PDF
+  </Step>
+  
+  <Step title="Documentation">
+    - Navigation diagram showing page flow
+    - README with:
+      - Setup instructions
+      - Database credentials
+      - Required dependencies
+      - Any special configuration
+  </Step>
+</Steps>
+
+### File Organization Best Practices
+
+```
+TAREA-XX/
+├── sql/
+│   ├── esquema.sql
+│   ├── datos.sql
+│   └── diagrama.png
+├── src/
+│   └── (PHP class files)
+├── public/
+│   └── (Entry point PHP files)
+├── views/
+│   └── (Template files)
+├── composer.json
+└── README.md
+```
+
+## Tips for Success
+
+<CardGroup cols={2}>
+  <Card title="Start Early" icon="clock">
+    Begin working on TAREAS as soon as they're assigned. Complex database projects take time to debug.
+  </Card>
+  
+  <Card title="Test Thoroughly" icon="flask">
+    Test all CRUD operations, edge cases, and error handling before submission.
+  </Card>
+  
+  <Card title="Follow PSR Standards" icon="code">
+    Use PSR-4 autoloading and follow PHP coding standards for better organization.
+  </Card>
+  
+  <Card title="Document Your Work" icon="book">
+    Clear documentation helps both you and your instructor understand your implementation.
+  </Card>
+</CardGroup>
+
+## Common Mistakes to Avoid
+
+<Warning>
+  **Security Issues**
+  - Never use raw SQL queries without prepared statements
+  - Always validate and sanitize user input
+  - Hash passwords using `password_hash()`, not MD5
+  - Implement proper session management
+</Warning>
+
+<Warning>
+  **Database Design**
+  - Don't skip foreign key constraints
+  - Avoid storing redundant data (normalize your schema)
+  - Use appropriate data types (e.g., `DECIMAL` for money, not `FLOAT`)
+  - Include `ON DELETE` and `ON UPDATE` actions
+</Warning>
+
+<Warning>
+  **Code Organization**
+  - Don't mix business logic with presentation
+  - Avoid duplicate code - create reusable functions
+  - Use meaningful names for variables and functions
+  - Keep functions focused on a single responsibility
+</Warning>
+
+## Getting Help
+
+If you encounter difficulties:
+
+1. **Review BOLETINES**: Practice exercises often contain solutions to common problems
+2. **Check Documentation**: PHP documentation and library docs are valuable resources
+3. **Consult Example Code**: Look at the exam samples (MUESTRA-EXAMEN2-DWCS) for structure guidance
+4. **Ask Questions**: Contact your instructor during office hours or via the course platform
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="View Exam Samples" href="/assignments/exam-samples">
+    See what to expect in exams
+  </Card>
+  
+  <Card title="Project Guidelines" href="/assignments/project-guidelines">
+    Detailed TAREA requirements
+  </Card>
+  
+  <Card title="Course Topics" href="/topics">
+    Review course content by unit
+  </Card>
+</CardGroup>

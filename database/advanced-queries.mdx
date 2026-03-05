@@ -1,0 +1,642 @@
+---
+title: "Advanced Queries"
+description: "Master complex queries including joins, prepared statements, transactions, and advanced PDO features"
+---
+
+## Introduction
+
+Beyond basic CRUD operations, PDO provides powerful features for complex database operations including joins across multiple tables, transactions for data integrity, and advanced query techniques.
+
+<Note>
+All examples are extracted from the actual TEMA-04 course repository and demonstrate real-world database patterns.
+</Note>
+
+## JOIN Operations
+
+JOINs combine data from multiple related tables based on foreign key relationships.
+
+### Implicit JOIN (Comma Syntax)
+
+From `tiendas.php` - finding stores that stock a specific product:
+
+```php tiendas.php
+<?php
+if (!isset($_GET['id'])) {
+    header('Location:listado.php');
+}
+
+$id = $_GET['id'];
+require_once 'conexion.php';
+
+$consulta = "SELECT nombre, tlf, unidades 
+             FROM tiendas, stocks 
+             WHERE tiendas.id = stocks.tienda 
+             AND stocks.producto = :i";
+
+$stmt = $conProyecto->prepare($consulta);
+
+try {
+    $stmt->execute([':i' => $id]);
+} catch (PDOException $ex) {
+    die("Error al recuperar la tienda: " . $ex->getMessage());
+}
+
+while ($filas = $stmt->fetch(PDO::FETCH_OBJ)) {
+    echo "<tr class='text-center'>";
+    echo "<td>{$filas->nombre}</td>";
+    echo "<td>{$filas->tlf}</td>";
+    echo "<td>{$filas->unidades}</td>";
+    echo "</tr>";
+}
+
+$stmt = null;
+$conProyecto = null;
+?>
+```
+
+### Explicit INNER JOIN (Recommended)
+
+The same query using explicit JOIN syntax:
+
+```sql
+SELECT nombre, tlf, unidades 
+FROM tiendas 
+INNER JOIN stocks ON tiendas.id = stocks.tienda 
+WHERE stocks.producto = :i
+```
+
+<CodeGroup>
+```sql Implicit JOIN
+SELECT nombre, tlf, unidades 
+FROM tiendas, stocks 
+WHERE tiendas.id = stocks.tienda 
+AND stocks.producto = :i
+```
+
+```sql Explicit INNER JOIN (Better)
+SELECT nombre, tlf, unidades 
+FROM tiendas 
+INNER JOIN stocks ON tiendas.id = stocks.tienda 
+WHERE stocks.producto = :i
+```
+</CodeGroup>
+
+<Warning>
+Explicit JOIN syntax is clearer and less error-prone. The implicit comma syntax can accidentally create Cartesian products if you forget the WHERE clause.
+</Warning>
+
+### Multi-Table JOIN
+
+Joining products with their families and stock information:
+
+```php
+<?php
+require_once 'conexion.php';
+
+$consulta = "SELECT 
+                p.id,
+                p.nombre,
+                p.pvp,
+                f.nombre as familia_nombre,
+                t.nombre as tienda_nombre,
+                s.unidades
+             FROM productos p
+             INNER JOIN familias f ON p.familia = f.cod
+             INNER JOIN stocks s ON p.id = s.producto
+             INNER JOIN tiendas t ON s.tienda = t.id
+             WHERE s.unidades > 0
+             ORDER BY p.nombre";
+
+$stmt = $conProyecto->prepare($consulta);
+$stmt->execute();
+
+while ($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+    echo "{$row->nombre} - {$row->familia_nombre} - ";
+    echo "{$row->tienda_nombre}: {$row->unidades} units<br>";
+}
+
+$stmt = null;
+$conProyecto = null;
+?>
+```
+
+### Table Aliases
+
+Use aliases to make queries more readable:
+
+```sql
+SELECT 
+    p.nombre as producto,
+    f.nombre as familia,
+    t.nombre as tienda,
+    s.unidades
+FROM productos p
+INNER JOIN familias f ON p.familia = f.cod
+INNER JOIN stocks s ON p.id = s.producto
+INNER JOIN tiendas t ON s.tienda = t.id
+```
+
+## JOIN Types
+
+### INNER JOIN
+
+Returns only matching rows from both tables:
+
+```sql
+SELECT p.nombre, s.unidades
+FROM productos p
+INNER JOIN stocks s ON p.id = s.producto
+-- Only products that have stock records
+```
+
+### LEFT JOIN
+
+Returns all rows from left table, with NULL for non-matching right table rows:
+
+```sql
+SELECT p.nombre, s.unidades
+FROM productos p
+LEFT JOIN stocks s ON p.id = s.producto
+-- All products, even those without stock records
+```
+
+### RIGHT JOIN
+
+Returns all rows from right table, with NULL for non-matching left table rows:
+
+```sql
+SELECT p.nombre, s.unidades
+FROM productos p
+RIGHT JOIN stocks s ON p.id = s.producto
+-- All stock records, even if product was deleted
+```
+
+<Steps>
+  <Step title="Choose JOIN Type">
+    - Use INNER JOIN when you only want matching records
+    - Use LEFT JOIN when you need all records from the first table
+    - Use RIGHT JOIN when you need all records from the second table
+  </Step>
+  
+  <Step title="Define Relationships">
+    Specify the foreign key relationship in the ON clause:
+    ```sql
+    INNER JOIN stocks ON productos.id = stocks.producto
+    ```
+  </Step>
+  
+  <Step title="Filter Results">
+    Use WHERE clause to filter the joined results:
+    ```sql
+    WHERE stocks.unidades > 0
+    ```
+  </Step>
+</Steps>
+
+## Transactions
+
+Transactions ensure data integrity by treating multiple operations as a single atomic unit.
+
+### Basic Transaction Pattern
+
+From `ej3_2_2.php` - updating and inserting stock atomically:
+
+```php ej3_2_2.php
+<?php
+$host = "localhost";
+$db   = "proyecto";
+$user = "gestor";
+$pass = "secreto";
+$dsn  = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+$conProyecto = new PDO($dsn, $user, $pass);
+$conProyecto->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+
+// Variable to track success
+$isOk = true;
+
+// Start transaction
+$conProyecto->beginTransaction();
+
+// First operation: update existing stock
+$update = "UPDATE stocks 
+           SET unidades=1 
+           WHERE producto=(SELECT id FROM productos WHERE nombre_corto='PAPYRE62GB') 
+           AND tienda=1";
+if (!$conProyecto->exec($update)) $isOk = false;
+
+// Second operation: insert new stock record
+$insert = "INSERT INTO stocks 
+           SELECT id, 2, 1 
+           FROM productos 
+           WHERE nombre_corto='PAPYRE62GB'";
+if (!$conProyecto->exec($insert)) $isOk = false;
+
+// Commit or rollback based on success
+if ($isOk) {
+    $conProyecto->commit();
+    echo "<p class='text-primary font-weight-bold'>Los cambios se realizaron correctamente.</p>";
+} else {
+    $conProyecto->rollBack();
+    echo "<p class='text-danger font-weight-bold'>No se han podido realizar los cambios.</p>";
+}
+
+$conProyecto = null;
+?>
+```
+
+### Transaction Flow
+
+<Steps>
+  <Step title="Begin Transaction">
+    ```php
+    $conProyecto->beginTransaction();
+    ```
+    Starts a new transaction. All subsequent queries are part of this transaction.
+  </Step>
+  
+  <Step title="Execute Operations">
+    ```php
+    $conProyecto->exec($update);
+    $conProyecto->exec($insert);
+    ```
+    Perform all database operations. Track success/failure.
+  </Step>
+  
+  <Step title="Commit or Rollback">
+    ```php
+    if ($isOk) {
+        $conProyecto->commit();    // Save all changes
+    } else {
+        $conProyecto->rollBack();  // Undo all changes
+    }
+    ```
+  </Step>
+</Steps>
+
+### Transaction with Prepared Statements
+
+More secure version using prepared statements:
+
+```php
+<?php
+require_once 'conexion.php';
+
+try {
+    $conProyecto->beginTransaction();
+    
+    // Update stock at store 1
+    $update = "UPDATE stocks SET unidades=:u WHERE producto=:p AND tienda=:t";
+    $stmt1 = $conProyecto->prepare($update);
+    $stmt1->execute([':u' => 10, ':p' => 5, ':t' => 1]);
+    
+    // Insert stock at store 2
+    $insert = "INSERT INTO stocks (producto, tienda, unidades) VALUES (:p, :t, :u)";
+    $stmt2 = $conProyecto->prepare($insert);
+    $stmt2->execute([':p' => 5, ':t' => 2, ':u' => 5]);
+    
+    // All succeeded - commit
+    $conProyecto->commit();
+    echo "Transacción completada exitosamente";
+    
+} catch (PDOException $ex) {
+    // Something failed - rollback
+    $conProyecto->rollBack();
+    echo "Error en transacción: " . $ex->getMessage();
+}
+
+$conProyecto = null;
+?>
+```
+
+<Warning>
+**Critical Transaction Rules:**
+
+1. Always wrap transactions in try-catch blocks
+2. Always call either `commit()` or `rollBack()` 
+3. Never leave a transaction open
+4. Transactions are automatically rolled back if the connection closes
+</Warning>
+
+## When to Use Transactions
+
+Use transactions when operations must succeed or fail together:
+
+### Financial Operations
+```php
+// Transfer money between accounts
+$conProyecto->beginTransaction();
+
+// Deduct from account A
+$conProyecto->exec("UPDATE accounts SET balance = balance - 100 WHERE id = 1");
+
+// Add to account B  
+$conProyecto->exec("UPDATE accounts SET balance = balance + 100 WHERE id = 2");
+
+$conProyecto->commit();
+```
+
+### Inventory Management
+```php
+// Create order and reduce stock
+$conProyecto->beginTransaction();
+
+// Insert order
+$conProyecto->exec("INSERT INTO orders (product_id, quantity) VALUES (5, 3)");
+
+// Reduce stock
+$conProyecto->exec("UPDATE stocks SET unidades = unidades - 3 WHERE producto = 5");
+
+$conProyecto->commit();
+```
+
+### Related Records
+```php
+// Create product and initial stock
+$conProyecto->beginTransaction();
+
+$insert = "INSERT INTO productos (nombre, pvp, familia) VALUES (:n, :p, :f)";
+$stmt = $conProyecto->prepare($insert);
+$stmt->execute([':n' => 'Nuevo', ':p' => 99.99, ':f' => 'CONSOL']);
+
+$prodId = $conProyecto->lastInsertId();
+
+$insert2 = "INSERT INTO stocks (producto, tienda, unidades) VALUES (:p, :t, :u)";
+$stmt2 = $conProyecto->prepare($insert2);
+$stmt2->execute([':p' => $prodId, ':t' => 1, ':u' => 10]);
+
+$conProyecto->commit();
+```
+
+## Subqueries
+
+Queries nested inside other queries.
+
+### Subquery in WHERE Clause
+
+```sql
+SELECT nombre, pvp
+FROM productos
+WHERE familia = (
+    SELECT cod 
+    FROM familias 
+    WHERE nombre = 'Consolas'
+)
+```
+
+### Subquery in INSERT
+
+From the transaction example:
+
+```sql
+INSERT INTO stocks 
+SELECT id, 2, 1 
+FROM productos 
+WHERE nombre_corto='PAPYRE62GB'
+```
+
+### Subquery with EXISTS
+
+Find products that have stock:
+
+```sql
+SELECT nombre
+FROM productos p
+WHERE EXISTS (
+    SELECT 1 
+    FROM stocks s 
+    WHERE s.producto = p.id
+)
+```
+
+## Aggregate Functions
+
+### Common Aggregates
+
+<CodeGroup>
+```sql COUNT
+-- Count products by family
+SELECT familia, COUNT(*) as total
+FROM productos
+GROUP BY familia
+```
+
+```sql SUM
+-- Total units in stock per product
+SELECT producto, SUM(unidades) as total_stock
+FROM stocks
+GROUP BY producto
+```
+
+```sql AVG
+-- Average price per family
+SELECT familia, AVG(pvp) as precio_medio
+FROM productos
+GROUP BY familia
+```
+
+```sql MAX/MIN
+-- Price range per family
+SELECT familia, MIN(pvp) as minimo, MAX(pvp) as maximo
+FROM productos
+GROUP BY familia
+```
+</CodeGroup>
+
+### HAVING Clause
+
+Filter grouped results:
+
+```sql
+SELECT familia, COUNT(*) as total
+FROM productos
+GROUP BY familia
+HAVING COUNT(*) > 5
+```
+
+<Note>
+`WHERE` filters individual rows before grouping.
+`HAVING` filters grouped results after aggregation.
+</Note>
+
+## Advanced Prepared Statements
+
+### Reusing Prepared Statements
+
+```php
+<?php
+require_once 'conexion.php';
+
+$consulta = "SELECT * FROM productos WHERE familia = :f";
+$stmt = $conProyecto->prepare($consulta);
+
+// Execute with different families
+$stmt->execute([':f' => 'CONSOL']);
+while ($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+    echo $row->nombre . "<br>";
+}
+
+// Reuse same statement
+$stmt->execute([':f' => 'ORDENA']);
+while ($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+    echo $row->nombre . "<br>";
+}
+
+$stmt = null;
+$conProyecto = null;
+?>
+```
+
+### Binding Parameters
+
+Alternative to passing array to execute():
+
+```php
+$stmt = $conProyecto->prepare("SELECT * FROM productos WHERE familia = :f");
+$stmt->bindParam(':f', $familia, PDO::PARAM_STR);
+
+$familia = 'CONSOL';
+$stmt->execute();
+
+$familia = 'ORDENA';
+$stmt->execute();
+```
+
+### Binding by Type
+
+```php
+$stmt = $conProyecto->prepare("INSERT INTO productos (nombre, pvp) VALUES (:n, :p)");
+$stmt->bindParam(':n', $nombre, PDO::PARAM_STR);
+$stmt->bindParam(':p', $precio, PDO::PARAM_STR); // PARAM_STR works for DECIMAL
+
+$nombre = "Producto 1";
+$precio = 99.99;
+$stmt->execute();
+```
+
+PDO Parameter Types:
+- `PDO::PARAM_STR` - String values
+- `PDO::PARAM_INT` - Integer values
+- `PDO::PARAM_BOOL` - Boolean values
+- `PDO::PARAM_NULL` - NULL values
+
+## Performance Optimization
+
+### Fetch All vs Fetch Loop
+
+<CodeGroup>
+```php fetchAll() - Load all at once
+$stmt->execute();
+$productos = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+foreach ($productos as $producto) {
+    echo $producto->nombre;
+}
+```
+
+```php fetch() - One at a time (Memory efficient)
+$stmt->execute();
+
+while ($producto = $stmt->fetch(PDO::FETCH_OBJ)) {
+    echo $producto->nombre;
+}
+```
+</CodeGroup>
+
+<Warning>
+`fetchAll()` loads all results into memory at once. For large result sets, use `fetch()` in a loop to reduce memory usage.
+</Warning>
+
+### Limiting Results
+
+```sql
+SELECT * FROM productos ORDER BY nombre LIMIT 10
+```
+
+```sql
+-- Pagination: Skip 20, take 10
+SELECT * FROM productos ORDER BY nombre LIMIT 10 OFFSET 20
+```
+
+### Indexing
+
+Ensure queries use indexes:
+
+```sql
+-- Create index on frequently queried column
+CREATE INDEX idx_familia ON productos(familia);
+
+-- Create index on join columns (usually automatic on foreign keys)
+CREATE INDEX idx_producto ON stocks(producto);
+```
+
+## Complex Query Example
+
+Combining multiple advanced techniques:
+
+```php
+<?php
+require_once 'conexion.php';
+
+// Find products with low stock across all stores
+$consulta = "
+    SELECT 
+        p.id,
+        p.nombre,
+        p.pvp,
+        f.nombre as familia,
+        SUM(s.unidades) as total_stock,
+        COUNT(DISTINCT s.tienda) as num_tiendas
+    FROM productos p
+    INNER JOIN familias f ON p.familia = f.cod
+    LEFT JOIN stocks s ON p.id = s.producto
+    GROUP BY p.id, p.nombre, p.pvp, f.nombre
+    HAVING SUM(s.unidades) < :min_stock OR SUM(s.unidades) IS NULL
+    ORDER BY total_stock ASC, p.nombre
+    LIMIT 20
+";
+
+$stmt = $conProyecto->prepare($consulta);
+
+try {
+    $stmt->execute([':min_stock' => 5]);
+    
+    echo "<h3>Productos con Stock Bajo</h3>";
+    
+    while ($row = $stmt->fetch(PDO::FETCH_OBJ)) {
+        $stock = $row->total_stock ?? 0;
+        echo "<p>";
+        echo "<strong>{$row->nombre}</strong><br>";
+        echo "Familia: {$row->familia}<br>";
+        echo "Stock total: {$stock} unidades<br>";
+        echo "En {$row->num_tiendas} tiendas<br>";
+        echo "PVP: €{$row->pvp}";
+        echo "</p>";
+    }
+    
+} catch (PDOException $ex) {
+    die("Error: " . $ex->getMessage());
+}
+
+$stmt = null;
+$conProyecto = null;
+?>
+```
+
+This query demonstrates:
+- Multiple table joins (INNER and LEFT)
+- Aggregate functions (SUM, COUNT)
+- GROUP BY with multiple columns
+- HAVING clause with NULL handling
+- Parameterized query
+- Result limiting
+- Proper error handling
+
+## Next Steps
+
+You've completed the Database Programming section! Review these topics as needed:
+
+- [PDO Introduction](/database/pdo-introduction) - Connection setup and basics
+- [MySQL Integration](/database/mysql-integration) - Database schema and design
+- [CRUD Operations](/database/crud-operations) - Basic data manipulation
+
+For more advanced topics, explore PHP sessions, file uploads, and web security in the next course units.

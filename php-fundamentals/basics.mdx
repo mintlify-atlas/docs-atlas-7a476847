@@ -1,0 +1,518 @@
+---
+title: "PHP Basics"
+description: "Learn PHP fundamentals including syntax, variables, operators, and control structures with real course examples"
+---
+
+## Introduction to PHP
+
+PHP (Hypertext Preprocessor) is a server-side scripting language designed for web development. PHP code is embedded within HTML and executed on the server before being sent to the client's browser.
+
+### Basic PHP Syntax
+
+PHP code blocks are enclosed in `<?php ?>` tags. Every PHP statement should end with a semicolon.
+
+```php
+<?php
+// Single-line comment
+/* Multi-line
+   comment */
+echo "Hello, World!";
+?>
+```
+
+<Note>
+PHP files typically have a `.php` extension and can contain a mix of HTML and PHP code.
+</Note>
+
+## Variables and Data Types
+
+Variables in PHP start with the `$` symbol and don't require explicit type declarations.
+
+### Variable Declaration
+
+```php
+<?php
+$numero1 = 10;           // Integer
+$numero2 = 20;           // Integer
+$precio = 99.99;         // Float
+$nombre = "Juan";        // String
+$activo = true;          // Boolean
+?>
+```
+
+### Type Casting
+
+PHP automatically converts between types, but you can explicitly cast values:
+
+```php
+<?php
+$valorU = empty($_GET['u']) ? "VACIO": $_GET['u'];
+$valorA = empty($_GET['a']) ? "VACIO": $_GET['a'];
+
+// Explicit float casting
+$resultado = (float) $valorU + $valorA * $valorT;
+?>
+```
+
+<Warning>
+Always validate and sanitize user input from forms to prevent security vulnerabilities.
+</Warning>
+
+## Operators
+
+### Arithmetic Operators
+
+PHP supports standard arithmetic operations:
+
+<CodeGroup>
+
+```php Basic Arithmetic
+<?php
+$numero1 = $_GET['numero1'];
+$numero2 = $_GET['numero2'];
+
+echo "La suma es: " . ($numero1 + $numero2);
+echo "La resta es: " . ($numero1 - $numero2);
+echo "El producto es: " . ($numero1 * $numero2);
+echo "El resto es: " . ($numero1 % $numero2);
+?>
+```
+
+```php Physics Calculation
+<?php
+$velocidadInicial = (float) $_GET['u'];
+$aceleracion = (float) $_GET['a'];
+$tiempo = (float) $_GET['t'];
+
+// Velocity calculation: v = u + at
+$velocidad = $velocidadInicial + $aceleracion * $tiempo;
+
+// Distance calculation: s = ut + (1/2)at²
+$espacio = $velocidadInicial * $tiempo + 0.5 * $aceleracion * ($tiempo ** 2);
+
+echo "La velocidad (v) es: " . $velocidad;
+echo "El espacio recorrido (s) es: " . $espacio;
+?>
+```
+
+</CodeGroup>
+
+### Comparison Operators
+
+```php
+<?php
+$a = 10;
+$b = 20;
+
+$a == $b   // Equal (value)
+$a === $b  // Identical (value and type)
+$a != $b   // Not equal
+$a !== $b  // Not identical
+$a < $b    // Less than
+$a > $b    // Greater than
+$a <= $b   // Less than or equal
+$a >= $b   // Greater than or equal
+?>
+```
+
+### Logical Operators
+
+```php
+<?php
+$edad = 25;
+$tieneLicencia = true;
+
+// AND operator
+if ($edad >= 18 && $tieneLicencia) {
+    echo "Puede conducir";
+}
+
+// OR operator
+if ($edad < 18 || !$tieneLicencia) {
+    echo "No puede conducir";
+}
+?>
+```
+
+## Control Structures
+
+### Conditional Statements
+
+<Tabs>
+  <Tab title="if-else">
+    ```php
+    <?php
+    $entero1 = $_GET['entero1'];
+    $entero2 = $_GET['entero2'];
+    $entero3 = $_GET['entero3'];
+
+    // Find the largest number
+    $mayor = $entero1;
+    if ($entero1 < $entero2) {
+        $mayor = $entero2;
+        if ($entero2 < $entero3) {
+            $mayor = $entero3;
+        }
+    } else {
+        if ($entero1 < $entero3) {
+            $mayor = $entero3;
+        }
+    }
+
+    // Find the smallest number
+    $menor = $entero1;
+    if ($entero2 < $entero1) {
+        $menor = $entero2;
+        if ($entero3 < $entero2) {
+            $menor = $entero3;
+        }
+    } else {
+        if ($entero3 < $entero1) {
+            $menor = $entero3;
+        }
+    }
+
+    echo "El mayor es: " . $mayor;
+    echo "El menor es: " . $menor;
+    ?>
+    ```
+  </Tab>
+  <Tab title="switch">
+    ```php
+    <?php
+    $estado = intval($_GET['estado']);
+
+    switch($estado) {
+        case 0:
+            $estado = 1;
+            include "formulario1.php";
+            break;
+
+        case 1:
+            if ($numero === "INVALIDO") {
+                include "formulario2.php";
+            } else {
+                include "formulario3.php";
+            }
+            break;
+
+        default:
+            throw new Exception("Estado no válido: " . $estado);
+    }
+    ?>
+    ```
+  </Tab>
+</Tabs>
+
+### Loops
+
+<Steps>
+  <Step title="For Loop">
+    Use `for` loops when you know the number of iterations:
+    
+    ```php
+    <?php
+    for ($i = 0; $i <= 10; $i++) {
+        $cuadrado = $i * $i;
+        $cubo = $i * $i * $i;
+        echo "Número: $i\tCuadrado: $cuadrado\tCubo: $cubo\n";
+    }
+    ?>
+    ```
+  </Step>
+  
+  <Step title="While Loop">
+    Use `while` loops for condition-based iteration:
+    
+    ```php
+    <?php
+    $entero = $_GET['entero'];
+    $digitos = "";
+    
+    while ($entero > 0) {
+        $digitos = ($entero % 10) . "   " . $digitos;
+        $entero = floor($entero / 10);
+    }
+    
+    echo "Dígitos separados: " . $digitos;
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Foreach Loop">
+    Use `foreach` to iterate over arrays (covered in Arrays & Functions):
+    
+    ```php
+    <?php
+    $numeros = [1, 2, 3, 4, 5];
+    foreach ($numeros as $numero) {
+        echo $numero . " ";
+    }
+    ?>
+    ```
+  </Step>
+</Steps>
+
+## String Manipulation
+
+### String Concatenation
+
+```php
+<?php
+$nombre = "Juan";
+$apellido = "García";
+
+// Using dot operator
+$nombreCompleto = $nombre . " " . $apellido;
+
+// Using double quotes (variable interpolation)
+echo "Nombre: $nombre $apellido";
+
+// Using curly braces for clarity
+echo "Nombre: {$nombre} {$apellido}";
+?>
+```
+
+### Heredoc Syntax
+
+Heredoc is useful for multi-line strings with embedded variables:
+
+```php
+<?php
+$numero1 = 10;
+$numero2 = 20;
+
+echo <<<MARCA
+<p>
+    <label for="numero1">Introduzca el primer número:</label>
+    <input type="number" id="numero1" name="numero1" value="{$numero1}"/>
+</p>
+<p>
+    <label for="numero2">Introduzca el segundo número:</label>
+    <input type="number" id="numero2" name="numero2" value="{$numero2}" />
+</p>
+MARCA;
+?>
+```
+
+## Constants
+
+Define constants using `define()` or the `const` keyword:
+
+```php
+<?php
+// Using define()
+define('IMPUESTO_ESTATAL', 0.05);
+define('IMPUESTO_AUTONOMICO', 0.04);
+
+// Using const
+const PI = 3.14159;
+
+// Usage
+$totalMensualVentas = 1000;
+$liquido = $totalMensualVentas / (1 + IMPUESTO_AUTONOMICO + IMPUESTO_ESTATAL);
+$impuestosEstatales = $liquido * IMPUESTO_ESTATAL;
+?>
+```
+
+<Note>
+Constants are case-sensitive by default and conventionally written in UPPERCASE.
+</Note>
+
+## Type Checking and Validation
+
+### Empty and Isset
+
+```php
+<?php
+// Check if variable is set
+if (isset($_GET['nombre'])) {
+    echo "Variable exists";
+}
+
+// Check if variable is empty
+if (empty($_GET['email'])) {
+    echo "Email is required";
+}
+
+// Combining checks
+$valor = empty($_GET['dato']) ? "VACIO" : $_GET['dato'];
+?>
+```
+
+### Type Validation
+
+```php
+<?php
+$numero = $_GET['numero'];
+
+// Check if numeric
+if (is_numeric($numero)) {
+    echo "Es numérico";
+}
+
+// Check specific types
+is_int($numero);      // Integer
+is_float($numero);    // Float
+is_string($numero);   // String
+is_bool($numero);     // Boolean
+is_array($numero);    // Array
+?>
+```
+
+## Number Formatting
+
+Format numbers for display with `number_format()`:
+
+```php
+<?php
+$totalMensualVentas = 1234.5678;
+$liquido = 456.789;
+
+// Format with 2 decimals, comma as decimal separator
+$totalMensualVentas = number_format($totalMensualVentas, 2, ",", "");
+$liquido = number_format($liquido, 2, ",", "");
+
+echo "Total: {$totalMensualVentas} €";
+echo "Líquido: {$liquido} €";
+?>
+```
+
+## Superglobal Variables
+
+PHP provides several built-in superglobal arrays:
+
+- **$_GET**: Data from URL parameters or GET forms
+- **$_POST**: Data from POST forms
+- **$_SERVER**: Server and execution environment information
+- **$_SESSION**: Session variables
+- **$_COOKIE**: Cookie values
+
+### Using $_SERVER
+
+```php
+<?php
+// Current script filename
+echo $_SERVER['PHP_SELF'];
+
+// Server name
+echo $_SERVER['SERVER_NAME'];
+
+// Request method (GET, POST, etc.)
+echo $_SERVER['REQUEST_METHOD'];
+?>
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Always Validate Input">
+    Never trust user input. Always validate and sanitize data from forms:
+    
+    ```php
+    <?php
+    $numero = !isset($_GET['numero']) || 
+              preg_match("/^[+-]?\d+$/", $_GET['numero']) !== 1 
+              ? "INVALIDO" 
+              : intval($_GET['numero']);
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Use Meaningful Variable Names">
+    Choose descriptive variable names that reflect their purpose:
+    
+    ```php
+    // Good
+    $totalMensualVentas = 1000;
+    $impuestosAutonomicos = 40;
+    
+    // Bad
+    $x = 1000;
+    $temp = 40;
+    ```
+  </Step>
+  
+  <Step title="Handle Errors Gracefully">
+    Always provide user-friendly error messages:
+    
+    ```php
+    <?php
+    if ($entero === "" || $entero < 0) {
+        echo '<p style="color: red">El número debe ser positivo</p>';
+    }
+    ?>
+    ```
+  </Step>
+</Steps>
+
+## Practical Example: Form Processing
+
+Here's a complete example from the course materials demonstrating basic PHP concepts:
+
+```php
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PHP Form Example</title>
+</head>
+<body style="font-family: monospace">
+    <form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
+<?php
+    $botonEnviar = !isset($_GET['botonEnviar']) || 
+                   $_GET['botonEnviar'] != "Enviar" ? false : true;
+    $botonReset = !isset($_GET['botonReset']) || 
+                  $_GET['botonReset'] != "Reset" ? false : true;
+
+    $entero1 = empty($_GET['entero1']) ? "" : $_GET['entero1'];
+    $entero2 = empty($_GET['entero2']) ? "" : $_GET['entero2'];
+    $entero3 = empty($_GET['entero3']) ? "" : $_GET['entero3'];
+
+    if ($botonReset) {
+        $entero1 = "";
+        $entero2 = "";
+        $entero3 = "";
+    }
+
+    echo <<<MARCA
+    <p>
+        <label for="numero1">Introduzca primer entero:</label>
+        <input type="number" id="numero1" name="entero1" value="{$entero1}" />
+    </p>
+    <p>
+        <label for="numero2">Introduzca segundo entero:</label>
+        <input type="number" id="numero2" name="entero2" value="{$entero2}" />
+    </p>
+    <p>
+        <label for="numero3">Introduzca tercer entero:</label>
+        <input type="number" id="numero3" name="entero3" value="{$entero3}" />
+    </p>
+MARCA;
+
+    if ($entero1 === "" || $entero2 === "" || $entero3 === "") {
+        if ($botonEnviar) {
+            echo '<p style="color: red">Rellene todos los campos</p>';
+        }
+    } else {
+        $suma = $entero1 + $entero2 + $entero3;
+        $media = $suma / 3;
+        $producto = $entero1 * $entero2 * $entero3;
+
+        echo "<p>La suma es: $suma</p>";
+        echo "<p>La media es: $media</p>";
+        echo "<p>El producto es: $producto</p>";
+    }
+?>
+        <button type="submit" name="botonEnviar" value="Enviar">Enviar</button>
+        <button type="submit" name="botonReset" value="Reset">Reset</button>
+    </form>
+</body>
+</html>
+```
+
+## Next Steps
+
+Now that you understand PHP basics, continue to:
+- [Forms & Validation](/php-fundamentals/forms-validation) - Learn to process and validate form data
+- [Arrays & Functions](/php-fundamentals/arrays-functions) - Master arrays and create reusable functions

@@ -1,0 +1,767 @@
+---
+title: Development Environment Setup
+description: Complete guide to setting up PHP, MySQL, Apache, and development tools for the DWCS 2025-26 course
+---
+
+# Development Environment Setup
+
+This guide will walk you through setting up a complete development environment for the DWCS course. You'll install PHP, MySQL, Apache, and configure everything needed to run the course examples locally.
+
+## Prerequisites
+
+Before starting, ensure you have:
+- A computer running Windows, macOS, or Linux
+- At least 4GB of free disk space
+- Administrative/root access to install software
+- Git installed for cloning the repository
+
+## Quick Start Options
+
+<Tabs>
+  <Tab title="XAMPP (Recommended)">
+    **XAMPP** is an all-in-one package that includes PHP, MySQL, and Apache. This is the recommended approach for the course.
+    
+    <Steps>
+      <Step title="Download XAMPP">
+        Download XAMPP 8.2.12 or later from [apachefriends.org](https://www.apachefriends.org/)
+        
+        <Note>
+        The course materials are tested with **PHP 8.2.12**. Use XAMPP 8.2.12 for full compatibility.
+        </Note>
+      </Step>
+      
+      <Step title="Install XAMPP">
+        Run the installer and select these components:
+        - ✅ Apache
+        - ✅ MySQL
+        - ✅ PHP
+        - ✅ phpMyAdmin
+        
+        **Recommended installation path:**
+        - Windows: `C:/xampp-8-2-12/`
+        - Linux: `/opt/lampp/`
+        - macOS: `/Applications/XAMPP/`
+      </Step>
+      
+      <Step title="Start Services">
+        Open XAMPP Control Panel and start:
+        - Apache
+        - MySQL
+        
+        Verify by visiting `http://localhost` in your browser.
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="Manual Installation">
+    Install each component separately if you prefer more control:
+    
+    <Steps>
+      <Step title="Install PHP 8.2+">
+        - **Windows**: Download from [windows.php.net](https://windows.php.net/download/)
+        - **macOS**: `brew install php@8.2`
+        - **Linux**: `sudo apt install php8.2 php8.2-cli php8.2-mysql php8.2-xml php8.2-mbstring`
+      </Step>
+      
+      <Step title="Install MySQL/MariaDB">
+        - **Windows**: Download MySQL Community Server from [mysql.com](https://dev.mysql.com/downloads/)
+        - **macOS**: `brew install mysql`
+        - **Linux**: `sudo apt install mysql-server`
+      </Step>
+      
+      <Step title="Install Apache">
+        - **Windows**: Download from [apachelounge.com](https://www.apachelounge.com/download/)
+        - **macOS**: Apache is pre-installed, or use `brew install httpd`
+        - **Linux**: `sudo apt install apache2`
+      </Step>
+      
+      <Step title="Configure PHP with Apache">
+        Add PHP module to Apache configuration and restart the server.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Clone the Course Repository
+
+Once your server environment is ready, clone the course repository:
+
+<CodeGroup>
+```bash Terminal
+git clone https://github.com/davidgacaeduxuntagal/Curso25-26-MP0613-DWCS.git
+cd Curso25-26-MP0613-DWCS
+```
+
+```bash Alternative Location
+# Clone to a specific directory
+git clone https://github.com/davidgacaeduxuntagal/Curso25-26-MP0613-DWCS.git C:/micarpeta/DELREPO/MP0613-DWCS
+```
+</CodeGroup>
+
+<Note>
+Note the full path where you cloned the repository. You'll need this for Apache virtual host configuration.
+</Note>
+
+## Apache Virtual Hosts Configuration
+
+Virtual hosts allow you to use friendly URLs like `http://dwcs.localhost/` instead of `http://localhost/long/path/to/files/`.
+
+<Steps>
+  <Step title="Locate Apache Configuration">
+    Find your Apache configuration directory:
+    
+    - **XAMPP Windows**: `C:/xampp-8-2-12/apache/conf/extra/`
+    - **XAMPP Linux**: `/opt/lampp/etc/extra/`
+    - **Manual Install**: Usually `/etc/apache2/sites-available/`
+    
+    Look for `httpd-vhosts.conf` file.
+  </Step>
+  
+  <Step title="Enable Virtual Hosts">
+    In the main Apache config file (`httpd.conf`), uncomment this line:
+    
+    ```apache
+    Include conf/extra/httpd-vhosts.conf
+    ```
+  </Step>
+  
+  <Step title="Configure Virtual Hosts">
+    Edit `httpd-vhosts.conf` using the template provided in the repository:
+    
+    ```apache httpd-vhosts.conf
+    # Enable name-based virtual hosting
+    NameVirtualHost *:80
+    
+    # IMPORTANT: Update this path to your repository location
+    Define DWCS-TRABAJO "C:/micarpeta/DELREPO/MP0613-DWCS"
+    
+    # Default XAMPP htdocs (adjust path if needed)
+    <VirtualHost *:80>
+      ServerAdmin webmaster@dwcs.localhost
+      DocumentRoot "C:/xampp-8-2-12/htdocs"
+      ServerName localhost
+      ServerAlias 127.0.0.1
+      <Directory "C:/xampp-8-2-12/htdocs">
+        Options Indexes FollowSymLinks Includes ExecCGI
+        Require all granted
+        AllowOverride All
+      </Directory>
+      ErrorLog "logs/htdocs.localhost.log"
+      CustomLog "logs/htdocs.localhost-access.log" common
+    </VirtualHost>
+    
+    # DWCS Course Repository
+    <VirtualHost *:80>
+      ServerAdmin webmaster@dwcs.localhost
+      DocumentRoot "${DWCS-TRABAJO}"
+      ServerName dwcs.localhost
+      ServerAlias dwcs.localhost
+      <Directory "${DWCS-TRABAJO}">
+        Options Indexes FollowSymLinks Includes ExecCGI
+        Require all granted
+        AllowOverride All
+      </Directory>
+      ErrorLog "logs/dwcs.localhost.log"
+      CustomLog "logs/dwcs.localhost-access.log" common
+    </VirtualHost>
+    ```
+    
+    <Warning>
+    **Critical**: Change the `DWCS-TRABAJO` path to match where you cloned the repository!
+    </Warning>
+  </Step>
+  
+  <Step title="Update Hosts File (Optional)">
+    Modern browsers automatically resolve `*.localhost` domains to `127.0.0.1`, so this step is usually not needed.
+    
+    However, if you have issues or are using PHP HTTP clients (like `SoapClient` in TEMA-06), add this line:
+    
+    **Windows**: `C:\Windows\System32\drivers\etc\hosts`
+    **Linux/macOS**: `/etc/hosts`
+    
+    ```text
+    127.0.0.1  dwcs.localhost
+    ```
+  </Step>
+  
+  <Step title="Restart Apache">
+    Restart Apache from the XAMPP Control Panel or command line:
+    
+    ```bash
+    # XAMPP Linux
+    sudo /opt/lampp/lampp restart
+    
+    # systemd-based Linux
+    sudo systemctl restart apache2
+    
+    # macOS
+    sudo apachectl restart
+    ```
+  </Step>
+  
+  <Step title="Test Configuration">
+    Visit `http://dwcs.localhost/` in your browser. You should see the repository directory listing.
+    
+    Test a specific example:
+    ```
+    http://dwcs.localhost/TEMA-02/BOLETINES/DWES-Boletin-01/E01/index.php
+    ```
+  </Step>
+</Steps>
+
+<Note>
+**Alternative Configuration**: For TEMA-08 Google API work, you may need to temporarily use `http://localhost` instead of subdomains, as Google OAuth2 has restrictions. See the commented-out virtual host section in `EJEMPLO-httpd-vhosts.conf`.
+</Note>
+
+## Database Setup
+
+The course uses MySQL extensively, starting from TEMA-04.
+
+<Steps>
+  <Step title="Start MySQL Server">
+    Start MySQL from XAMPP Control Panel or command line:
+    
+    ```bash
+    # XAMPP
+    # Start from Control Panel
+    
+    # Linux systemd
+    sudo systemctl start mysql
+    
+    # macOS
+    mysql.server start
+    ```
+  </Step>
+  
+  <Step title="Access MySQL">
+    Connect to MySQL:
+    
+    <CodeGroup>
+    ```bash Command Line
+    mysql -u root -p
+    ```
+    
+    ```text phpMyAdmin
+    # Visit http://localhost/phpmyadmin
+    # Default XAMPP credentials:
+    # Username: root
+    # Password: (empty)
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Create Project Database">
+    Run the database creation script from TEMA-04:
+    
+    ```bash Terminal
+    mysql -u root -p < TEMA-04/SQL/proyecto.sql
+    ```
+    
+    Or import via phpMyAdmin:
+    1. Open phpMyAdmin
+    2. Click "Import" tab
+    3. Choose file: `TEMA-04/SQL/proyecto.sql`
+    4. Click "Go"
+    
+    This creates:
+    - Database: `proyecto`
+    - Tables: `tiendas`, `familias`, `productos`, `stocks`
+    - User: `gestor@localhost` with password `secreto`
+  </Step>
+  
+  <Step title="Load Sample Data (Optional)">
+    Populate the database with sample data:
+    
+    ```bash
+    mysql -u root -p proyecto < TEMA-04/SQL/datosProyecto.sql
+    ```
+  </Step>
+  
+  <Step title="Verify Database Setup">
+    Test the connection with a PHP script:
+    
+    ```php test-db.php
+    <?php
+    $host = "localhost";
+    $db   = "proyecto";
+    $user = "gestor";
+    $pass = "secreto";
+    $dsn  = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+    
+    try {
+        $conProyecto = new PDO($dsn, $user, $pass);
+        $conProyecto->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        echo "✅ Database connection successful!\n";
+        
+        $stmt = $conProyecto->query("SELECT COUNT(*) as count FROM productos");
+        $result = $stmt->fetch();
+        echo "Found {$result['count']} products in database.\n";
+    } catch (PDOException $ex) {
+        die("❌ Error: " . $ex->getMessage());
+    }
+    ?>
+    ```
+    
+    Run: `php test-db.php`
+  </Step>
+</Steps>
+
+### Database Schema
+
+The main project database (`proyecto`) structure:
+
+```sql
+-- Stores
+CREATE TABLE tiendas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    tlf VARCHAR(13) NULL
+);
+
+-- Product Families
+CREATE TABLE familias (
+    cod VARCHAR(6) PRIMARY KEY,
+    nombre VARCHAR(200) NOT NULL
+);
+
+-- Products
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(200) NOT NULL,
+    nombre_corto VARCHAR(50) UNIQUE NOT NULL,
+    descripcion TEXT NULL,
+    pvp DECIMAL(10, 2) NOT NULL,
+    familia VARCHAR(6) NOT NULL,
+    CONSTRAINT fk_prod_fam FOREIGN KEY(familia) 
+        REFERENCES familias(cod) 
+        ON UPDATE CASCADE 
+        ON DELETE CASCADE
+);
+
+-- Inventory/Stock
+CREATE TABLE stocks (
+    producto INT,
+    tienda INT,
+    unidades INT UNSIGNED NOT NULL,
+    CONSTRAINT pk_stock PRIMARY KEY(producto, tienda),
+    CONSTRAINT fk_stock_prod FOREIGN KEY(producto) 
+        REFERENCES productos(id) 
+        ON UPDATE CASCADE 
+        ON DELETE CASCADE,
+    CONSTRAINT fk_stock_tienda FOREIGN KEY(tienda) 
+        REFERENCES tiendas(id) 
+        ON UPDATE CASCADE 
+        ON DELETE CASCADE
+);
+```
+
+<Note>
+For exam practice, additional databases are provided in `MUESTRA-EXAMEN2-DWCS/UNIDAD-*/SQL/` with both schema (`*-esquema.sql`) and data (`*-datos.sql`) files.
+</Note>
+
+## PHP Configuration
+
+Ensure your PHP installation has the required extensions.
+
+### Required PHP Extensions
+
+<CodeGroup>
+```ini php.ini
+; Enable these extensions (remove leading semicolon)
+extension=mysqli
+extension=pdo_mysql
+extension=mbstring
+extension=openssl
+extension=curl
+extension=fileinfo
+extension=gd
+extension=soap
+
+; For debugging (TEMA-08)
+[xdebug]
+zend_extension=xdebug
+xdebug.mode=debug
+xdebug.start_with_request=yes
+xdebug.client_port=9003
+```
+
+```bash Verify Extensions
+php -m | grep -E '(pdo_mysql|mysqli|mbstring|curl|soap)'
+```
+</CodeGroup>
+
+### Recommended PHP Settings
+
+```ini php.ini
+; Development settings
+error_reporting = E_ALL
+display_errors = On
+display_startup_errors = On
+
+; File uploads
+upload_max_filesize = 64M
+post_max_size = 64M
+
+; Session configuration
+session.cookie_httponly = 1
+session.use_strict_mode = 1
+```
+
+<Warning>
+**Production Note**: Never use `display_errors = On` in production! These settings are for development only.
+</Warning>
+
+## VS Code Setup (Recommended)
+
+The course includes VS Code configuration for debugging.
+
+<Steps>
+  <Step title="Install VS Code">
+    Download from [code.visualstudio.com](https://code.visualstudio.com/)
+  </Step>
+  
+  <Step title="Install PHP Extensions">
+    Install these VS Code extensions:
+    - **PHP Debug** (xdebug.php-debug)
+    - **PHP Intelephense** (bmewburn.vscode-intelephense-client)
+    - **PHP Extension Pack** (xdebug.php-pack)
+  </Step>
+  
+  <Step title="Configure Launch Settings">
+    The repository includes a sample configuration in `EJEMPLO_vscode_launch.json`. Copy it to `.vscode/launch.json`:
+    
+    ```json .vscode/launch.json
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Launch Chrome",
+                "request": "launch",
+                "type": "chrome",
+                "url": "http://dwcs.localhost/${relativeFile}",
+                "webRoot": "${workspaceFolder}"
+            },
+            {
+                "name": "Listen for Xdebug",
+                "type": "php",
+                "request": "launch",
+                "port": 9003
+            },
+            {
+                "name": "Launch built-in server and debug",
+                "type": "php",
+                "request": "launch",
+                "runtimeArgs": [
+                    "-S",
+                    "localhost:3000",
+                    "-t",
+                    "."
+                ],
+                "port": 9003,
+                "serverReadyAction": {
+                    "action": "openExternally"
+                }
+            },
+            {
+                "name": "Debug current script in console",
+                "type": "php",
+                "request": "launch",
+                "program": "${file}",
+                "cwd": "${fileDirname}",
+                "externalConsole": false,
+                "port": 9003
+            }
+        ]
+    }
+    ```
+  </Step>
+  
+  <Step title="Test Debugging">
+    1. Set a breakpoint in a PHP file
+    2. Press F5 or click "Run and Debug"
+    3. Select "Listen for Xdebug"
+    4. Load the page in your browser
+    5. The breakpoint should trigger
+  </Step>
+</Steps>
+
+## API Keys Configuration
+
+For TEMA-08, you'll need API keys from various services.
+
+<Steps>
+  <Step title="Copy Configuration Template">
+    Copy the template file:
+    
+    ```bash
+    cd TEMA-08
+    cp claves.inc.php claves.inc.php.local
+    ```
+  </Step>
+  
+  <Step title="Register for API Keys">
+    Sign up for free API keys from:
+    
+    | Service | URL | Purpose |
+    |---------|-----|----------|
+    | AEMET | [opendata.aemet.es](https://opendata.aemet.es/) | Spanish weather data |
+    | OpenWeatherMap | [openweathermap.org/api](https://openweathermap.org/api) | Global weather |
+    | ExchangeRate-API | [exchangerate-api.com](https://www.exchangerate-api.com/) | Currency rates |
+    | Google Cloud | [console.cloud.google.com](https://console.cloud.google.com/) | OAuth2 |
+    
+    <Note>
+    GeoPlugin and Open-Meteo don't require API keys.
+    </Note>
+  </Step>
+  
+  <Step title="Configure Keys">
+    Edit `claves.inc.php.local` with your actual keys:
+    
+    ```php claves.inc.php.local
+    <?php
+    // AEMET API Key
+    $keyAEMET = "your-aemet-api-key-here";
+    
+    // OpenWeatherMap API Key
+    $keyOpenWeatherMap = "your-openweathermap-key-here";
+    
+    // Bing Maps API Key (optional)
+    $keyBing = "your-bing-maps-key-here";
+    
+    // Google OAuth2 Credentials
+    $googleClientId     = "your-client-id.apps.googleusercontent.com";
+    $googleClientSecret = "your-client-secret";
+    
+    // Google OAuth2 for TAREA-08
+    $googleClientIdTarea8     = "your-tarea8-client-id.apps.googleusercontent.com";
+    $googleClientSecretTarea8 = "your-tarea8-client-secret";
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Update .gitignore">
+    Ensure your local keys file is ignored:
+    
+    ```bash .gitignore
+    claves.inc.php.local
+    *.local.php
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+**Security**: Never commit real API keys to version control! The provided `claves.inc.php` contains dummy values for reference only.
+</Warning>
+
+## Verify Installation
+
+Run through this checklist to ensure everything is working:
+
+<Steps>
+  <Step title="PHP Version">
+    ```bash
+    php -v
+    # Should show PHP 8.2.12 or later
+    ```
+  </Step>
+  
+  <Step title="PHP Extensions">
+    ```bash
+    php -m | grep -E '(PDO|mysqli|mbstring|curl|soap)'
+    # Should list all extensions
+    ```
+  </Step>
+  
+  <Step title="Apache Status">
+    Visit `http://localhost/` - should show XAMPP dashboard or Apache default page
+  </Step>
+  
+  <Step title="Virtual Host">
+    Visit `http://dwcs.localhost/` - should show repository directory listing
+  </Step>
+  
+  <Step title="MySQL Connection">
+    ```bash
+    mysql -u root -p -e "SELECT VERSION();"
+    # Should display MySQL version
+    ```
+  </Step>
+  
+  <Step title="Project Database">
+    ```bash
+    mysql -u gestor -psecreto proyecto -e "SHOW TABLES;"
+    # Should list: familias, productos, stocks, tiendas
+    ```
+  </Step>
+  
+  <Step title="PHP Database Connection">
+    Test a PHP file from TEMA-04:
+    ```
+    http://dwcs.localhost/TEMA-04/ej3_1_3.php
+    ```
+    Should execute without errors.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Apache won't start - Port 80 already in use">
+    **Problem**: Another service (Skype, IIS, etc.) is using port 80.
+    
+    **Solutions**:
+    1. Stop the conflicting service
+    2. Change Apache port in `httpd.conf`:
+       ```apache
+       Listen 8080
+       ```
+       Then access via `http://localhost:8080/`
+  </Accordion>
+  
+  <Accordion title="MySQL won't start - Port 3306 in use">
+    **Problem**: Another MySQL instance is running.
+    
+    **Solutions**:
+    1. Stop other MySQL services from Services (Windows) or `systemctl`
+    2. Change MySQL port in XAMPP config
+    3. Use the conflicting MySQL if it's compatible
+  </Accordion>
+  
+  <Accordion title="404 Not Found on dwcs.localhost">
+    **Possible causes**:
+    1. Virtual hosts not enabled in `httpd.conf`
+    2. Wrong path in `DWCS-TRABAJO` variable
+    3. Apache not restarted after config changes
+    
+    **Check**:
+    ```bash
+    # Test Apache config
+    apachectl -t
+    # or
+    httpd -t
+    ```
+  </Accordion>
+  
+  <Accordion title="Database connection errors">
+    **Common issues**:
+    
+    1. **Access denied for user**:
+       - User `gestor@localhost` doesn't exist
+       - Run `TEMA-04/SQL/proyecto.sql` to create user
+    
+    2. **Unknown database 'proyecto'**:
+       - Database not created
+       - Import `proyecto.sql`
+    
+    3. **PDO driver not found**:
+       - Enable `pdo_mysql` extension in `php.ini`
+       - Restart Apache
+  </Accordion>
+  
+  <Accordion title="Xdebug not working">
+    **Verify Xdebug**:
+    ```bash
+    php -v
+    # Should show "with Xdebug v3.x.x"
+    ```
+    
+    **Check php.ini**:
+    ```ini
+    [xdebug]
+    zend_extension=xdebug
+    xdebug.mode=debug
+    xdebug.start_with_request=yes
+    xdebug.client_port=9003
+    ```
+    
+    **VS Code**:
+    - Ensure "Listen for Xdebug" is running (F5)
+    - Check port 9003 in launch.json matches php.ini
+  </Accordion>
+  
+  <Accordion title="SOAP/WSDL errors (TEMA-06)">
+    **Enable SOAP extension**:
+    ```ini php.ini
+    extension=soap
+    ```
+    
+    **DNS issues with .localhost domains**:
+    Add to hosts file:
+    ```
+    127.0.0.1  dwcs.localhost
+    ```
+  </Accordion>
+  
+  <Accordion title="API calls failing (TEMA-08)">
+    **Check**:
+    1. Valid API keys in `claves.inc.php`
+    2. `curl` extension enabled
+    3. `openssl` extension enabled
+    4. Internet connection active
+    5. API rate limits not exceeded
+    
+    **Test**:
+    ```bash
+    php -r "echo file_get_contents('https://www.google.com') ? 'OK' : 'FAIL';"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Alternative: Using PHP Built-in Server
+
+For quick testing without Apache:
+
+```bash
+# Navigate to any TEMA directory
+cd TEMA-02/BOLETINES/DWES-Boletin-01/E01
+
+# Start PHP built-in server
+php -S localhost:8000
+
+# Access in browser
+http://localhost:8000/index.php
+```
+
+<Note>
+The built-in server is great for quick tests but doesn't support `.htaccess` files or some Apache-specific features. Use Apache virtual hosts for full compatibility.
+</Note>
+
+## Next Steps
+
+Your environment is now ready! 🎉
+
+<CardGroup cols={2}>
+  <Card title="Course Overview" icon="book" href="/course-overview">
+    Learn about the course structure and learning path
+  </Card>
+  <Card title="PHP Fundamentals" icon="play" href="/php-fundamentals/basics">
+    Begin with PHP fundamentals and form processing
+  </Card>
+  <Card title="Database Guide" icon="database" href="/database/pdo-introduction">
+    Jump to database connectivity when ready
+  </Card>
+  <Card title="API Integration" icon="globe" href="/api-integration/curl-basics">
+    Advanced: External APIs and OAuth2
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+If you encounter issues:
+
+1. **Check the error logs**:
+   - Apache: `xampp/apache/logs/error.log`
+   - PHP: Check `error_log` location with `php --ini`
+   - MySQL: `xampp/mysql/data/*.err`
+
+2. **Test incrementally**:
+   - Verify each component separately
+   - Test with simple PHP files before complex examples
+   - Use `phpinfo()` to check configuration
+
+3. **Review course materials**:
+   - Example configuration files in repository root
+   - Working examples in each TEMA
+   - Exam samples for reference implementations
+
+Happy coding! 🚀

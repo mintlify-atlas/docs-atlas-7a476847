@@ -1,0 +1,439 @@
+---
+title: "Exam Samples"
+description: "Understanding DWCS exam format, structure, and preparation strategies based on actual exam samples"
+---
+
+# Exam Samples
+
+The DWCS course provides sample exams (MUESTRA-EXAMEN2-DWCS) to help you understand the format and expectations for actual assessments. These samples are invaluable for exam preparation.
+
+## Exam Structure
+
+DWCS exams are practical, hands-on assessments that test your ability to build functional PHP applications under time constraints.
+
+<CardGroup cols={2}>
+  <Card title="Practical Format" icon="laptop-code">
+    Build working applications from scratch or modify existing code
+  </Card>
+  
+  <Card title="Cumulative Content" icon="layers">
+    Exams cover material from multiple units, building on previous topics
+  </Card>
+  
+  <Card title="Time-Based" icon="clock">
+    Complete multiple questions within a fixed time period
+  </Card>
+  
+  <Card title="Progressive Difficulty" icon="chart-line">
+    Questions build on each other, starting from a base application
+  </Card>
+</CardGroup>
+
+## Sample Exam Organization
+
+The MUESTRA-EXAMEN2-DWCS directory contains solutions organized by unit and question:
+
+### Directory Structure
+
+```
+MUESTRA-EXAMEN2-DWCS/
+├── README.txt
+├── UNIDAD-04-00/        # Unit 4 starting point
+├── UNIDAD-05-00/        # Unit 5 starting point
+├── UNIDAD-05-02/        # Solution to Question 2
+├── UNIDAD-05-03/        # Solution to Question 3
+├── UNIDAD-05-04/        # Solution to Question 4
+├── UNIDAD-06-00/        # Unit 6 starting point
+├── UNIDAD-06-01/        # Solution to Question 1
+├── UNIDAD-07-00/        # Unit 7 starting point
+├── UNIDAD-07-01/        # Solution to Question 1
+└── UNIDAD-07-02/        # Solution to Question 2
+```
+
+<Note>
+  **Understanding the Structure**: Each `UNIDAD-XX-00` provides the starting point for that unit's questions. Subsequent directories (01, 02, 03...) show incremental solutions to each question.
+</Note>
+
+### How to Use the Samples
+
+The exam samples are designed for progressive learning:
+
+<Steps>
+  <Step title="Start with the Base">
+    Begin with `UNIDAD-XX-00` to see the initial application state
+  </Step>
+  
+  <Step title="Compare Changes">
+    Use VS Code's "Compare Folders" extension (by MoshFeu) to see what changed between steps
+    
+    **Steps to Compare:**
+    1. Install the "Compare folders" extension if not installed
+    2. Select two folders to compare (e.g., UNIDAD-05-00 and UNIDAD-05-02)
+    3. Right-click and select "Compare folders"  
+    4. Review which files were modified, added, or deleted
+  </Step>
+  
+  <Step title="Understand the Solution">
+    Study the code changes to understand how each question was solved
+  </Step>
+  
+  <Step title="Practice Independently">
+    Try to solve the questions yourself before looking at solutions
+  </Step>
+</Steps>
+
+## Typical Exam Content
+
+Based on the sample exam, here's what you can expect:
+
+### Unit 4-5: Session Management & Shopping Cart
+
+**Starting Point (UNIDAD-05-00):**
+- Basic product listing system
+- Database connection with PDO
+- User login functionality
+
+**Typical Questions:**
+- Implement shopping cart using sessions
+- Add products to cart with quantity control
+- Display cart contents with total price
+- Handle cart operations (add, remove, update, empty)
+- Implement checkout process
+
+**Key Files:**
+```
+├── SQL/                 # Database schema
+├── cerrar.php          # Logout functionality
+├── cesta.php           # Shopping cart
+├── conexion.php        # Database connection
+├── listado.php         # Product listing
+├── login.php           # User authentication
+└── pagar.php           # Checkout process
+```
+
+### Unit 6: Advanced Database Operations
+
+**Focus Areas:**
+- Complex queries with JOINs
+- Transaction management
+- Data aggregation
+- User role management
+
+**Expected Skills:**
+- Foreign key relationships
+- CASCADE actions
+- Composite primary keys
+- Timestamp tracking
+
+### Unit 7: AJAX Integration
+
+**Focus Areas:**
+- Asynchronous operations without page reload
+- Dynamic content updates
+- Client-server communication
+
+**Technologies:**
+- Jaxon PHP library
+- JavaScript event handling
+- JSON data exchange
+
+## Exam Question Types
+
+<Accordion title="Type 1: Feature Implementation">
+  Add new functionality to an existing application.
+  
+  **Example:** "Implement a feature that allows users to add products to a shopping cart"
+  
+  **Requirements:**
+  - Modify existing PHP files
+  - Update database schema if needed
+  - Ensure proper session management
+  - Validate all user input
+</Accordion>
+
+<Accordion title="Type 2: Bug Fixing">
+  Identify and fix errors in provided code.
+  
+  **Example:** "The cart total is not calculating correctly. Fix the issue."
+  
+  **Skills Tested:**
+  - Debugging ability
+  - Understanding of PHP logic
+  - Knowledge of common pitfalls
+</Accordion>
+
+<Accordion title="Type 3: Database Operations">
+  Create queries or modify database structure.
+  
+  **Example:** "Create a query that shows total sales per customer"
+  
+  **Skills Tested:**
+  - SQL syntax
+  - JOIN operations
+  - Aggregate functions
+  - Database design principles
+</Accordion>
+
+<Accordion title="Type 4: Security Enhancement">
+  Implement security measures in existing code.
+  
+  **Example:** "Add authentication checks to prevent unauthorized access"
+  
+  **Skills Tested:**
+  - Session security
+  - Input validation
+  - SQL injection prevention
+  - XSS protection
+</Accordion>
+
+## Preparation Strategies
+
+### 1. Practice with Sample Exam
+
+<Steps>
+  <Step title="Timed Practice">
+    Set a timer and attempt questions without looking at solutions
+  </Step>
+  
+  <Step title="Review Solutions">
+    After completing (or when stuck), compare your solution with the provided one
+  </Step>
+  
+  <Step title="Understand Differences">
+    Identify why the sample solution works better or differently from yours
+  </Step>
+  
+  <Step title="Repeat">
+    Try the same questions again after a few days to reinforce learning
+  </Step>
+</Steps>
+
+### 2. Master Core Concepts
+
+Focus on these frequently-tested areas:
+
+<CardGroup cols={2}>
+  <Card title="Sessions" icon="user-lock">
+    - `$_SESSION` management
+    - Login/logout flows
+    - Cart persistence
+    - Security best practices
+  </Card>
+  
+  <Card title="PDO Operations" icon="database">
+    - Prepared statements
+    - Error handling
+    - Transactions
+    - Fetch modes
+  </Card>
+  
+  <Card title="Form Handling" icon="file-invoice">
+    - POST/GET processing
+    - Data validation
+    - Error messages
+    - Redirects
+  </Card>
+  
+  <Card title="SQL Queries" icon="table">
+    - CRUD operations
+    - JOINs (INNER, LEFT)
+    - WHERE clauses
+    - Aggregate functions
+  </Card>
+</CardGroup>
+
+### 3. Common Exam Patterns
+
+Be prepared for these recurring themes:
+
+<Warning>
+  **Shopping Cart Implementation**
+  - Almost always included in exams
+  - Must handle: add, remove, update quantities, calculate totals
+  - Requires solid session management
+</Warning>
+
+<Warning>
+  **User Authentication**
+  - Login form with validation
+  - Session-based access control
+  - Password verification
+  - Logout functionality
+</Warning>
+
+<Warning>
+  **Database Integration**
+  - Display data from database
+  - Insert/Update/Delete operations
+  - Handle relationships between tables
+  - Error handling for database failures
+</Warning>
+
+## Sample Exam Timeline
+
+Based on the exam structure, here's how to manage your time:
+
+### For a 2-Hour Exam
+
+| Time | Activity |
+|------|----------|
+| 0-10 min | Read all questions, plan approach |
+| 10-40 min | Complete Question 1 (usually database setup/basic CRUD) |
+| 40-75 min | Complete Question 2 (feature implementation) |
+| 75-105 min | Complete Question 3 (advanced feature) |
+| 105-120 min | Test everything, fix bugs, final review |
+
+<Note>
+  **Time Management Tip**: If stuck on a question, move to the next one and return later. Partial credit is better than no credit.
+</Note>
+
+## Technical Requirements
+
+### Development Environment Setup
+
+Ensure your environment matches exam requirements:
+
+```php
+// Database Connection (conexion.php)
+<?php
+$host = 'localhost';
+$dbname = 'tarea06';  // or exam-specific database
+$user = 'gestor';
+$password = 'secreto';
+
+try {
+    $conProyecto = new PDO(
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $user,
+        $password
+    );
+    $conProyecto->setAttribute(
+        PDO::ATTR_ERRMODE,
+        PDO::ERRMODE_EXCEPTION
+    );
+} catch (PDOException $e) {
+    die("Error: " . $e->getMessage());
+}
+```
+
+### Session Management Pattern
+
+```php
+// At the top of protected pages
+<?php
+session_start();
+if (!isset($_SESSION['nombre'])) {
+    header('Location: login.php');
+    exit();
+}
+?>
+```
+
+### Form Processing Pattern
+
+```php
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate input
+    $producto_id = filter_input(
+        INPUT_POST,
+        'id',
+        FILTER_VALIDATE_INT
+    );
+    
+    if ($producto_id) {
+        // Process the form
+    } else {
+        // Handle error
+    }
+}
+?>
+```
+
+## What to Bring to the Exam
+
+<CardGroup cols={2}>
+  <Card title="Allowed" icon="check">
+    - PHP documentation (offline)
+    - Your own code from TAREAS
+    - Course materials
+    - Database diagrams
+  </Card>
+  
+  <Card title="Not Allowed" icon="xmark">
+    - Internet access (usually)
+    - Communication with others
+    - External code repositories
+    - AI assistants
+  </Card>
+</CardGroup>
+
+<Note>
+  **Check with Your Instructor**: Exam policies may vary. Confirm what resources are permitted before the exam.
+</Note>
+
+## Exam Day Tips
+
+<Steps>
+  <Step title="Read Carefully">
+    Read each question completely before starting to code. Understanding requirements is crucial.
+  </Step>
+  
+  <Step title="Start Simple">
+    Get basic functionality working first, then add enhancements if time permits.
+  </Step>
+  
+  <Step title="Test Frequently">
+    Test your code after each significant change. Don't wait until the end.
+  </Step>
+  
+  <Step title="Comment Your Code">
+    Brief comments help the instructor understand your logic and may earn partial credit.
+  </Step>
+  
+  <Step title="Handle Errors">
+    Include basic error handling. Try-catch blocks show good practice.
+  </Step>
+</Steps>
+
+## After the Exam
+
+### Review Your Performance
+
+- Note which topics were challenging
+- Review sample solutions for questions you missed
+- Practice those areas before the next assessment
+
+### Common Post-Exam Mistakes
+
+Learn from these frequent errors:
+
+1. **Forgetting `session_start()`**: Always the first line in files using sessions
+2. **Not using prepared statements**: Leads to SQL injection vulnerabilities
+3. **Improper error handling**: Silent failures make debugging impossible
+4. **Incorrect redirects**: Missing `exit()` after `header()` calls
+5. **Type mismatches**: Not validating/converting input data types
+
+## Additional Resources
+
+<CardGroup cols={3}>
+  <Card title="Assignment Overview" href="/assignments/overview">
+    Review TAREA structure and requirements
+  </Card>
+  
+  <Card title="Project Guidelines" href="/assignments/project-guidelines">
+    Database design and project standards
+  </Card>
+  
+  <Card title="Course Topics" href="/topics">
+    Review all covered material
+  </Card>
+</CardGroup>
+
+## Final Advice
+
+<Warning>
+  **Practice Makes Perfect**
+  
+  The best preparation for DWCS exams is hands-on practice. Complete all BOLETINES, understand your TAREAS thoroughly, and work through the sample exam multiple times. Understanding *why* code works is more important than memorizing solutions.
+</Warning>

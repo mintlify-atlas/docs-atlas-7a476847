@@ -1,0 +1,638 @@
+---
+title: Shopping Cart Implementation
+description: Building a complete shopping cart system using PHP sessions and database integration
+---
+
+## Introduction
+
+A shopping cart is a core feature of e-commerce applications. This guide demonstrates how to implement a session-based shopping cart using real examples from the DWCS course materials.
+
+## Shopping Cart Architecture
+
+### System Components
+
+<Steps>
+
+### Authentication
+User must be logged in to access the cart
+
+### Product Listing
+Display available products with "Add to Cart" buttons
+
+### Session Storage
+Store cart items in `$_SESSION['cesta']`
+
+### Cart View
+Show items, quantities, and total price
+
+### Checkout
+Process the order and clear the cart
+
+</Steps>
+
+## Session-Based Cart Storage
+
+### Cart Data Structure
+
+The shopping cart is stored as an array in the session:
+
+```php
+$_SESSION['cesta'] = [
+    1 => true,  // Product ID 1 is in cart
+    3 => true,  // Product ID 3 is in cart
+    7 => true   // Product ID 7 is in cart
+];
+```
+
+<Note>
+This implementation uses product IDs as keys with boolean values. You could extend this to store quantities: `$_SESSION['cesta'][1] = 2` for 2 units of product 1.
+</Note>
+
+## Complete Cart Implementation
+
+### Product Listing Page
+
+Display products and allow users to add them to cart:
+
+```php listado.php
+<?php
+session_start();
+if (!isset($_SESSION['nombre'])) {
+    header('Location:login.php');
+}
+
+require_once 'conexion.php';
+
+// Handle adding product to cart
+if (isset($_POST['comprar'])) {
+    $id = $_POST['id'];
+    if (!isset($_SESSION['cesta'])) {
+        $_SESSION['cesta'] = [];
+    }
+    $_SESSION['cesta'][$id] = true;
+}
+
+// Handle clearing cart
+if (isset($_POST['vaciar'])) {
+    unset($_SESSION['cesta']);
+}
+
+// Get all products
+$productos = consultarProductos();
+?>
+```
+
+### Cart View Page
+
+Full implementation from TEMA-05:
+
+```php cesta.php
+<?php
+session_start();
+if (!isset($_SESSION['nombre'])) {
+    header('Location:login.php');
+}
+
+require_once 'conexion.php';
+
+if (isset($_SESSION['cesta'])) {
+    foreach ($_SESSION['cesta'] as $k => $v) {
+        $producto = consultarProducto($k);
+        $listado[$k] = [$producto->nombre, $producto->pvp];
+        $producto = null;
+    }
+    cerrar($conProyecto);
+}
+?>
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <title>Tema 4</title>
+</head>
+<body style="background: gray">
+<div class="float float-right d-inline-flex mt-2">
+    <i class="fa fa-shopping-cart mr-2 fa-2x"></i>
+    <?php
+    if (isset($_SESSION['cesta'])) {
+        $cantidad = count($_SESSION['cesta']);
+        echo "<input type='text' disabled class='form-control mr-2 bg-transparent text-white' value='$cantidad' size='2px'>";
+    } else {
+        echo "<input type='text' disabled class='form-control mr-2 bg-transparent text-white' value='0' size='2px'>";
+    }
+    ?>
+    <i class="fas fa-user mr-3 fa-2x"></i>
+    <input type="text" size='10px' value="<?php echo $_SESSION['nombre']; ?>"
+           class="form-control mr-2 bg-transparent text-white" disabled>
+    <a href="cerrar.php" class="btn btn-warning mr-2">Salir</a>
+</div>
+<br>
+<h4 class="container text-center mt-4 font-weight-bold">Comprar Productos</h4>
+<div class="container mt-3">
+    <div class="card text-white bg-success mb-3 m-auto" style="width:40rem">
+        <div class="card-body">
+            <h5 class="card-title"><i class="fa fa-shopping-cart mr-2"></i>Carrito</h5>
+            <?php
+            if (!isset($_SESSION['cesta'])) {
+                echo "<p class='card-text'>Carrito Vacio</p>";
+            } else {
+                $total = 0;
+                echo "<p class='card-text'>";
+                echo "<ul>";
+                foreach ($listado as $k => $v) {
+                    echo "<li>$v[0], PVP ($v[1]) €.</li>";
+                    $total += $v[1];
+                }
+                echo "</ul></p>";
+                echo "<hr style='border:none; height:2px; background-color: white'>";
+                echo "<p class='card-text'><b>Total:</b><span class='ml-3'>$total (€)</span></p>";
+            }
+            ?>
+            <a href="listado.php" class="btn btn-primary mr-2">Volver</a>
+            <a href="pagar.php" class="btn btn-danger">Pagar</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+```
+
+## Object-Oriented Implementation
+
+### Using Blade Templates
+
+Modern approach from UNIDAD-05-02 exam sample:
+
+```php cesta.php
+<?php
+error_reporting(E_ALL & ~E_DEPRECATED);
+
+session_start();
+if (!isset($_SESSION['nombre'])) {
+    header('Location:login.php');
+}
+
+require '../vendor/autoload.php';
+
+use Clases\Producto;
+use Philo\Blade\Blade;
+
+$views = '../views';
+$cache = '../cache';
+$blade = new Blade($views, $cache);
+
+$total = 0;
+$listado = [];
+if (isset($_SESSION['cesta'])) {
+    foreach ($_SESSION['cesta'] as $k => $v) {
+        $producto = (new Producto())->consultarProducto($k);
+        $listado[$k] = [$producto->nombre, $producto->pvp];
+        $total += $producto->pvp;
+        $producto = null;
+    }
+}
+
+$cantidad = 0;
+if (isset($_SESSION['cesta'])) {
+    $cantidad = count($_SESSION['cesta']);
+}
+
+$titulo = 'Cesta';
+$encabezado = 'Comprar Productos';
+$usuario = $_SESSION['nombre'];
+
+echo $blade
+    ->view()
+    ->make('vistaCesta', compact('titulo', 'encabezado', 'usuario', 'listado', 'cantidad', 'total'))
+    ->render();
+```
+
+### Blade Cart Template
+
+```blade vistaCesta.blade.php
+@extends('plantillas.plantilla1')
+
+@section('titulo')
+    {{$titulo}}
+@endsection
+
+@section('encabezado')
+    {{$encabezado}}
+@endsection
+
+@section('contenido')
+    <div class="container mt-3">
+        <div class="card text-white bg-success mb-3 m-auto" style="width:40rem">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa fa-shopping-cart mr-2"></i>Carrito</h5>
+
+                @if ( count($listado) == 0 )
+                    <p class='card-text'>Carrito Vacio</p>
+                @else  
+                    <p class='card-text'>
+                    <ul>
+                    @foreach($listado as $k => $v) 
+                        <li>{{$v[0]}}, PVP ({{$v[1]}}) €.</li>
+                    @endforeach  
+                    </ul></p>
+                    <hr style='border:none; height:2px; background-color: white'>
+                    <p class='card-text'><b>Total:</b><span class='ml-3'>{{$total}} (€)</span></p>
+                @endif
+                <a href="listado.php" class="btn btn-primary mr-2">Volver</a>
+                <a href="pagar.php" class="btn btn-danger">Pagar</a>
+            </div>
+        </div>
+    </div>
+@endsection
+```
+
+## Cart Operations
+
+### Adding Items to Cart
+
+```php
+if (isset($_POST['comprar'])) {
+    $id = $_POST['id'];
+    if (!isset($_SESSION['cesta'])) {
+        $_SESSION['cesta'] = [];
+    }
+    $_SESSION['cesta'][$id] = true;
+}
+```
+
+### Displaying Product List with Cart Status
+
+```blade vistaListado.blade.php
+@extends('plantillas.plantilla1')
+
+@section('titulo')
+    {{$titulo}}
+@endsection
+
+@section('encabezado')
+    {{$encabezado}}
+@endsection
+
+@section('contenido')
+    <div class="container mt-3">
+        <form class="form-inline" name="vaciar" method="POST" action='{{$action}}'>
+            <a href="cesta.php" class="btn btn-success mr-2">Ir a Cesta</a>
+            <input type='submit' value='Vaciar Carro' class="btn btn-danger" name="vaciar">
+        </form>
+        
+        <table class="table table-striped table-dark mt-3">
+            <thead>
+            <tr class="text-center">
+                <th scope="col">Añadir</th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Añadido</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach($productos as $item) 
+                <tr>
+                    <th scope='row' class='text-center'>
+                        <form action='{{$action}}' method='POST'>
+                            <input type='hidden' name='id' value='{{$item->id}}'>
+                            <input type='submit' class='btn btn-primary' name='comprar' value='Añadir'>
+                        </form>
+                    </th>
+                    <td>{{$item->nombre}}, Precio: {{$item->pvp}} (€)</td>
+                    <td class='text-center'>
+                        @if( isset($cesta[$item->id]) ) 
+                            <i class='fas fa-check fa-2x'></i>
+                        @else
+                            <i class='far fa-times-circle fa-2x'></i>
+                        @endif
+                    <td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+@endsection
+```
+
+### Clearing the Cart
+
+```php
+if (isset($_POST['vaciar'])) {
+    unset($_SESSION['cesta']);
+}
+```
+
+### Checkout Process
+
+```php pagar.php
+<?php
+session_start();
+if (!isset($_SESSION['nombre'])) {
+    header('Location:login.php');
+}
+?>
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <title>Tema 4</title>
+</head>
+<body style="background: grey">
+<div class="float float-right d-inline-flex mt-2">
+    <i class="fas fa-user mr-3 fa-2x"></i>
+    <input type="text" size='10px' value="<?php echo $_SESSION['nombre']; ?>" class="form-control
+    mr-2 bg-transparent text-white" disabled>
+    <a href="cerrar.php" class="btn btn-warning mr-2">Salir</a>
+</div>
+<br>
+<h4 class="container text-center mt-4 font-weight-bold">Tienda onLine</h4>
+<div class="container">
+    <p class="font-weight-bold">Pedido realizado Correctamente.</p>
+    <a href="listado.php" class="btn btn-info mt-3">Hacer otra Compra</a>
+</div>
+
+</body>
+</html>
+```
+
+<Warning>
+In a production application, the checkout page should:
+- Save the order to a database
+- Process payment
+- Send confirmation email
+- Clear the cart only after successful payment
+- Generate an order number for tracking
+</Warning>
+
+## Cart Counter Display
+
+### Header with Cart Count
+
+```php
+<div class="float float-right d-inline-flex mt-2">
+    <i class="fa fa-shopping-cart mr-2 fa-2x"></i>
+    <?php
+    if (isset($_SESSION['cesta'])) {
+        $cantidad = count($_SESSION['cesta']);
+        echo "<input type='text' disabled class='form-control mr-2 bg-transparent text-white' value='$cantidad' size='2px'>";
+    } else {
+        echo "<input type='text' disabled class='form-control mr-2 bg-transparent text-white' value='0' size='2px'>";
+    }
+    ?>
+    <i class="fas fa-user mr-3 fa-2x"></i>
+    <input type="text" size='10px' value="<?php echo $_SESSION['nombre']; ?>"
+           class="form-control mr-2 bg-transparent text-white" disabled>
+    <a href="cerrar.php" class="btn btn-warning mr-2">Salir</a>
+</div>
+```
+
+### Blade Version
+
+```blade
+<div class="float float-right d-inline-flex mt-2">
+    <i class="fa fa-shopping-cart mr-2 fa-2x"></i>
+    <input type='text' disabled class='form-control mr-2 bg-transparent text-white' value='{{$cantidad}}' size='2px'>
+    <i class="fas fa-user mr-3 fa-2x"></i>
+    <input type="text" size='10px' value='{{$usuario}}' class="form-control mr-2 bg-transparent text-white" disabled>
+    <a href='cerrar.php' class='btn btn-danger mr-2'>Salir</a>
+</div>
+```
+
+## Database Integration
+
+### Product Class
+
+```php Producto.php
+<?php
+namespace Clases;
+
+use PDO;
+use PDOException;
+
+class Producto extends Conexion
+{
+    private $id;
+    private $nombre;
+    private $pvp;
+
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    public function consultarProducto($id)
+    {
+        $consulta = "SELECT * FROM productos WHERE id = :i";
+        $stmt = $this->conexion->prepare($consulta);
+        
+        try {
+            $stmt->execute([':i' => $id]);
+        } catch (PDOException $ex) {
+            die("Error al consultar producto: " . $ex->getMessage());
+        }
+        
+        return $stmt->fetch(PDO::FETCH_OBJ);
+    }
+
+    public function consultarProductos()
+    {
+        $consulta = "SELECT * FROM productos ORDER BY nombre";
+        $stmt = $this->conexion->prepare($consulta);
+        
+        try {
+            $stmt->execute();
+        } catch (PDOException $ex) {
+            die("Error al consultar productos: " . $ex->getMessage());
+        }
+        
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+}
+```
+
+## Enhanced Cart Features
+
+### Cart with Quantities
+
+Extend the basic cart to support quantities:
+
+```php
+// Add product with quantity
+if (isset($_POST['comprar'])) {
+    $id = $_POST['id'];
+    $cantidad = isset($_POST['cantidad']) ? (int)$_POST['cantidad'] : 1;
+    
+    if (!isset($_SESSION['cesta'])) {
+        $_SESSION['cesta'] = [];
+    }
+    
+    if (isset($_SESSION['cesta'][$id])) {
+        $_SESSION['cesta'][$id] += $cantidad;
+    } else {
+        $_SESSION['cesta'][$id] = $cantidad;
+    }
+}
+
+// Display cart with quantities
+if (isset($_SESSION['cesta'])) {
+    $total = 0;
+    foreach ($_SESSION['cesta'] as $id => $cantidad) {
+        $producto = consultarProducto($id);
+        $subtotal = $producto->pvp * $cantidad;
+        $total += $subtotal;
+        
+        echo "<li>";
+        echo "$producto->nombre x $cantidad = $subtotal €";
+        echo "</li>";
+    }
+    echo "<p><b>Total: $total €</b></p>";
+}
+```
+
+### Remove Individual Items
+
+```php
+if (isset($_POST['eliminar'])) {
+    $id = $_POST['id'];
+    unset($_SESSION['cesta'][$id]);
+}
+```
+
+### Update Quantities
+
+```php
+if (isset($_POST['actualizar'])) {
+    $id = $_POST['id'];
+    $cantidad = (int)$_POST['cantidad'];
+    
+    if ($cantidad > 0) {
+        $_SESSION['cesta'][$id] = $cantidad;
+    } else {
+        unset($_SESSION['cesta'][$id]);
+    }
+}
+```
+
+## Best Practices
+
+<Note>
+**Shopping Cart Security:**
+- Always validate user authentication before cart operations
+- Validate product IDs exist in database
+- Sanitize and validate quantities
+- Never trust prices from client-side; always retrieve from database
+- Use CSRF tokens for form submissions
+- Set session timeout for inactive carts
+- Clear sensitive data after checkout
+</Note>
+
+## Complete Workflow
+
+<Steps>
+
+### User logs in
+Authentication creates session with username
+
+### User browses products
+Product listing shows available items and cart status
+
+### User adds items
+Products added to `$_SESSION['cesta']` array
+
+### User views cart
+Retrieve product details from database and calculate total
+
+### User proceeds to checkout
+Process order and save to database
+
+### Clear cart on completion
+Remove cart session data after successful order
+
+### User logs out
+Destroy entire session including cart
+
+</Steps>
+
+## Common Patterns
+
+### Check if Item is in Cart
+
+```php
+if (isset($_SESSION['cesta'][$productId])) {
+    echo "✓ In Cart";
+} else {
+    echo "Add to Cart";
+}
+```
+
+### Cart Item Count
+
+```php
+$itemCount = isset($_SESSION['cesta']) ? count($_SESSION['cesta']) : 0;
+```
+
+### Calculate Total
+
+```php
+$total = 0;
+if (isset($_SESSION['cesta'])) {
+    foreach ($_SESSION['cesta'] as $id => $quantity) {
+        $producto = consultarProducto($id);
+        $total += $producto->pvp * $quantity;
+    }
+}
+```
+
+## Troubleshooting
+
+### Cart Not Persisting
+
+Ensure `session_start()` is called on every page:
+
+```php
+<?php
+session_start();
+// Rest of code
+```
+
+### Empty Cart After Login
+
+Don't destroy session during login; only unset specific variables:
+
+```php
+// Wrong
+session_destroy();
+
+// Right
+unset($_SESSION['error']);
+```
+
+### Cart Shows Wrong Total
+
+Always retrieve prices from database, not from client:
+
+```php
+// Wrong - price from client
+$total += $_POST['precio'];
+
+// Right - price from database
+$producto = consultarProducto($id);
+$total += $producto->pvp;
+```
+
+## Summary
+
+A session-based shopping cart provides a simple, effective way to manage user purchases without requiring database storage for each cart operation. By combining sessions for temporary storage with database queries for product information, you can build a robust e-commerce system that maintains cart state throughout the user's session.

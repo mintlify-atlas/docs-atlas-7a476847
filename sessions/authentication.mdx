@@ -1,0 +1,459 @@
+---
+title: Authentication Systems
+description: Implementing secure login and authentication in PHP applications
+---
+
+## Introduction
+
+Authentication is the process of verifying user identity. This guide covers multiple authentication methods used in PHP, from basic HTTP authentication to session-based login systems with database validation.
+
+## HTTP Basic Authentication
+
+### PHP_AUTH Variables
+
+PHP provides built-in support for HTTP Basic Authentication through server variables:
+
+```php
+<?php
+function pedir()
+{
+    header('WWW-Authenticate: Basic Realm="Contenido Protegido"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo "Datos Incorrectos o Usuario NO reconocido!!!";
+    die();
+}
+
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    pedir();
+} else {
+    if ($_SERVER['PHP_AUTH_USER'] != 'gestor' && $_SERVER['PHP_AUTH_PW'] != 'secreto') {
+        pedir();
+    }
+}
+?>
+```
+
+### Available Authentication Variables
+
+```php
+$_SERVER['PHP_AUTH_USER']  // Username entered by user
+$_SERVER['PHP_AUTH_PW']    // Password entered by user
+$_SERVER['AUTH_TYPE']      // Authentication method (Basic)
+```
+
+<Warning>
+HTTP Basic Authentication sends credentials with every request and is not secure without HTTPS. Use session-based authentication for production applications.
+</Warning>
+
+## Session-Based Authentication
+
+### Complete Login System
+
+Here's a production-ready login system from the DWCS course:
+
+```php login.php
+<?php
+session_start();
+require_once 'conexion.php';
+
+function error($mensaje)
+{
+    $_SESSION['error'] = $mensaje;
+    header('Location:login.php');
+    die();
+}
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <title>Login</title>
+</head>
+
+<body style="background:silver;">
+<?php
+if (isset($_POST['login'])) {
+    $nombre = trim($_POST['usuario']);
+    $pass = trim($_POST['pass']);
+    
+    if (strlen($nombre) == 0 || strlen($pass) == 0) {
+        error("Error, El nombre o la contraseña no pueden contener solo espacios en blancos.");
+    }
+
+    // Create SHA256 hash of password (as stored in MySQL)
+    $pass1 = hash('sha256', $pass);
+    $consulta = "select * from usuarios where usuario=:u AND pass=:p";
+    $stmt = $conProyecto->prepare($consulta);
+    
+    try {
+        $stmt->execute([
+            ':u' => $nombre,
+            ':p' => $pass1
+        ]);
+    } catch (PDOException $ex) {
+        cerrarTodo($conProyecto, $stmt);
+        error("Error en la consulta a la base de datos.");
+    }
+    
+    if ($stmt->rowCount() == 0) {
+        unset($_POST['login']);
+        cerrarTodo($conProyecto, $stmt);
+        error("Error, Nombre de usuario o password incorrecto");
+    }
+    
+    cerrarTodo($conProyecto, $stmt);
+
+    // Successfully validated - create user session
+    $_SESSION['nombre'] = $nombre;
+    header('Location:listado.php');
+} else {
+?>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-center h-100">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Login</h3>
+                </div>
+                <div class="card-body">
+                    <form name='login' method='POST' action='<?php echo $_SERVER['PHP_SELF']; ?>'>
+                        <div class="input-group form-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            </div>
+                            <input type="text" class="form-control" placeholder="usuario" name='usuario' required>
+                        </div>
+                        <div class="input-group form-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                            </div>
+                            <input type="password" class="form-control" placeholder="contraseña" name='pass' required>
+                        </div>
+                        <div class="form-group">
+                            <input type="submit" value="Login" class="btn float-right btn-success" name='login'>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php
+            if (isset($_SESSION['error'])) {
+                echo "<div class='mt-3 text-danger font-weight-bold text-lg'>";
+                echo $_SESSION['error'];
+                unset($_SESSION['error']);
+                echo "</div>";
+            }
+        ?>
+    </div>
+<?php } ?>
+</body>
+</html>
+```
+
+## Object-Oriented Authentication
+
+### Validation with Classes
+
+Modern approach using OOP from the exam samples:
+
+```php validar.php
+<?php
+session_start();
+require '../vendor/autoload.php';
+
+use Clases\Cliente;
+
+function error($mensaje)
+{
+    $_SESSION['error'] = $mensaje;
+    header('Location: login.php');
+    die();
+}
+
+if (isset($_POST['login'])) {
+    $nombre = trim($_POST['usuario']);
+    $pass = trim($_POST['pass']);
+    
+    if (strlen($nombre) == 0 || strlen($pass) == 0) {
+        error("Error, El nombre o la contraseña no pueden contener solo espacios en blancos.");
+    }
+    
+    $usuario = new Cliente();
+    if (!$usuario->isValido($nombre, $pass)) {
+        $usuario = null;
+        error("Credenciales Inválidas");
+    }
+    
+    $usuario = null;
+    $_SESSION['nombre'] = $nombre;
+    header('Location: listado.php');
+}
+?>
+```
+
+### Cliente Class Implementation
+
+```php Cliente.php
+<?php
+namespace Clases;
+
+use PDOException;
+
+class Cliente extends Conexion
+{
+    private $usuario;
+    private $pass;
+
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    public function isValido($u, $p)
+    {
+        $pass1 = hash('sha256', $p);
+        $consulta = "select * from clientes where usuario=:u AND pass=:p";
+        $stmt = $this->conexion->prepare($consulta);
+        
+        try {
+            $stmt->execute([
+                ':u' => $u,
+                ':p' => $pass1
+            ]);
+        } catch (PDOException $ex) {
+            die("Error al consultar usuario: " . $ex->getMessage());
+        }
+        
+        if ($stmt->rowCount() == 0) return false;
+        return true;
+    }
+}
+```
+
+## Password Security
+
+### Hashing Passwords
+
+<Steps>
+
+### SHA256 Hashing (Basic)
+```php
+$hashedPassword = hash('sha256', $password);
+```
+
+### Password Hash (Recommended)
+```php
+// When creating user account
+$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+// When verifying login
+if (password_verify($password, $hashedPassword)) {
+    // Password is correct
+}
+```
+
+</Steps>
+
+<Note>
+While the course uses SHA256 for educational purposes, `password_hash()` and `password_verify()` are recommended for production applications as they use bcrypt with automatic salting.
+</Note>
+
+## Database Authentication
+
+### Database Validation with HTTP Auth
+
+```php
+<?php
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    header("WWW-Authenticate: Basic realm='Contenido restringido'");
+    header("HTTP/1.0 401 Unauthorized");
+    die();
+}
+
+// Database connection
+$host = "localhost";
+$db = "proyecto";
+$user = "gestor";
+$pass = "secreto";
+$dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+
+try {
+    $conProyecto = new PDO($dsn, $user, $pass);
+    $conProyecto->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $ex) {
+    die("Error en la conexión: mensaje: " . $ex->getMessage());
+}
+
+// Query database
+$consulta = "select * from usuarios where usuario=:u and pass=:p";
+$stmt = $conProyecto->prepare($consulta);
+$password = hash('sha256', $_SERVER['PHP_AUTH_PW']);
+
+try {
+    $stmt->execute([
+        ':u' => $_SERVER['PHP_AUTH_USER'],
+        ':p' => $password
+    ]);
+} catch (PDOException $ex) {
+    $conProyecto = null;
+    die("Error al recuperar las datos de Mysql: " . $ex->getMessage());
+}
+
+// Check if credentials are valid
+if ($stmt->rowCount() == 0) {
+    header("WWW-Authenticate: Basic realm='Contenido restringido'");
+    header("HTTP/1.0 401 Unauthorized");
+    $stmt = null;
+    $conProyecto = null;
+    die();
+}
+
+$stmt = null;
+$conProyecto = null;
+?>
+```
+
+## Protected Pages
+
+### Authentication Guard
+
+Protect pages by checking session at the top of each file:
+
+```php
+<?php
+session_start();
+if (!isset($_SESSION['nombre'])) {
+    header('Location:login.php');
+    die();
+}
+?>
+```
+
+<Warning>
+Always use `die()` or `exit()` after a redirect to prevent the rest of the script from executing.
+</Warning>
+
+## Logout Implementation
+
+### Simple Logout
+
+```php cerrar.php
+<?php
+session_start();
+unset($_SESSION['nombre']);
+unset($_SESSION['cesta']);
+header('Location:login.php');
+?>
+```
+
+### Complete Session Destruction
+
+```php
+<?php
+session_start();
+$_SESSION = array();
+session_destroy();
+header('Location:login.php');
+?>
+```
+
+## Input Validation
+
+### Sanitizing User Input
+
+```php
+$nombre = trim($_POST['usuario']);
+$pass = trim($_POST['pass']);
+
+if (strlen($nombre) == 0 || strlen($pass) == 0) {
+    error("Error, El nombre o la contraseña no pueden contener solo espacios en blancos.");
+}
+```
+
+<Note>
+**Validation Best Practices:**
+- Always use `trim()` to remove whitespace
+- Check for empty strings after trimming
+- Validate data length and format
+- Use prepared statements to prevent SQL injection
+- Never trust user input
+</Note>
+
+## Error Handling
+
+### Centralized Error Function
+
+```php
+function error($mensaje)
+{
+    $_SESSION['error'] = $mensaje;
+    header('Location:login.php');
+    die();
+}
+
+// Usage
+if ($stmt->rowCount() == 0) {
+    error("Error, Nombre de usuario o password incorrecto");
+}
+```
+
+### Displaying Errors
+
+```php
+<?php
+if (isset($_SESSION['error'])) {
+    echo "<div class='alert alert-danger h-100 mt-3'>";
+    echo "<p>" . $_SESSION['error'] . "</p>";
+    echo "</div>";
+    unset($_SESSION['error']);
+}
+?>
+```
+
+## Authentication Flow
+
+<Steps>
+
+### User visits login page
+Display login form if not authenticated
+
+### User submits credentials
+Validate input and check against database
+
+### Create session on success
+Store user identifier in `$_SESSION`
+
+### Redirect to protected area
+User can now access protected pages
+
+### Check authentication on each page
+Verify session exists before displaying content
+
+### Logout destroys session
+Clear session data and redirect to login
+
+</Steps>
+
+## Security Checklist
+
+<Warning>
+**Essential Security Measures:**
+- ✓ Use HTTPS in production
+- ✓ Hash all passwords before storage
+- ✓ Use prepared statements for database queries
+- ✓ Validate and sanitize all input
+- ✓ Set session timeout values
+- ✓ Regenerate session IDs after login
+- ✓ Implement CSRF protection
+- ✓ Use secure, httponly cookies
+- ✓ Log authentication attempts
+- ✓ Implement account lockout after failed attempts
+</Warning>
+
+## Summary
+
+Authentication in PHP can be implemented using HTTP Basic Auth for simple cases or session-based systems for production applications. Always prioritize security by hashing passwords, validating input, using prepared statements, and protecting against common vulnerabilities.

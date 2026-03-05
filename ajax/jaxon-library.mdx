@@ -1,0 +1,488 @@
+---
+title: Jaxon Library
+description: Learn how to use Jaxon for seamless PHP and JavaScript integration in AJAX applications
+---
+
+## Introduction to Jaxon
+
+Jaxon is a powerful PHP library that simplifies AJAX development by allowing you to call PHP functions and class methods directly from JavaScript. It eliminates much of the boilerplate code required for traditional AJAX requests.
+
+<Note>
+Jaxon is the successor to Xajax and provides a modern, object-oriented approach to PHP-JavaScript integration.
+</Note>
+
+## Key Features
+
+- Call PHP functions directly from JavaScript
+- Object-oriented with callable classes
+- Built-in DOM manipulation methods
+- Automatic JavaScript code generation
+- Support for dialogs, alerts, and UI feedback
+- Easy integration with existing PHP applications
+
+## Installation
+
+Install Jaxon using Composer:
+
+```bash
+composer require jaxon-php/jaxon-core
+composer require jaxon-php/jaxon-dialogs
+```
+
+### composer.json Example
+
+```json
+{
+  "name": "your-project/example",
+  "type": "project",
+  "require-dev": {
+    "jaxon-php/jaxon-core": "dev-main",
+    "jaxon-php/jaxon-dialogs": "dev-main",
+    "jaxon-php/jaxon-flot": "dev-main"
+  },
+  "minimum-stability": "dev"
+}
+```
+
+## Basic Jaxon Workflow
+
+<Steps>
+  <Step title="Include Jaxon">
+    Require the Composer autoloader and import Jaxon classes.
+  </Step>
+  
+  <Step title="Register PHP callables">
+    Register PHP functions or classes that JavaScript can call.
+  </Step>
+  
+  <Step title="Process requests">
+    Let Jaxon handle incoming AJAX requests.
+  </Step>
+  
+  <Step title="Include JavaScript">
+    Inject Jaxon's JavaScript code into your HTML page.
+  </Step>
+  
+  <Step title="Call from JavaScript">
+    Use generated JavaScript functions to call PHP code.
+  </Step>
+</Steps>
+
+## Hello World Example
+
+Here's a complete working example demonstrating Jaxon basics:
+
+```php hola.php
+<?php 
+require (__DIR__ . '/../vendor/autoload.php');
+
+use Jaxon\Jaxon;
+use function Jaxon\jaxon; 
+
+// Define the HolaMundo class
+class HolaMundo {
+  public function decirHola($estaEnMayusculas) {
+    $texto = ($estaEnMayusculas) ? '¡HOLA MUNDO!' : '¡hola mundo!';
+
+    // Create a response object
+    $respuesta = jaxon()->newResponse();
+    $respuesta->alert($texto);
+    return $respuesta;
+  }
+}
+
+// 1. Get a reference to the singleton jaxon object
+$jaxon = jaxon();
+
+// 2. Register the class instance with Jaxon
+$jaxon->register(Jaxon::CALLABLE_CLASS, HolaMundo::class);
+
+// 3. Call the request processing engine
+if($jaxon->canProcessRequest()) {
+  $jaxon->processRequest();
+}
+
+?>
+
+<!doctype html>
+<html>
+<head lang="es">
+  <title>Jaxon Simple Test</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<?php
+  // 4. Insert Jaxon CSS code in the page
+  echo $jaxon->getCss();
+?>    
+
+</head>
+
+<body>
+  <h1>Jaxon Hello World</h1>
+  
+  <!-- 5. Call Jaxon methods from JavaScript -->
+  <input type="button" 
+         value="Enviar Minúsculas" 
+         onclick="JaxonHolaMundo.decirHola(0);return false;" />
+  
+  <input type="button" 
+         value="ENVIAR MAYÚSCULAS" 
+         onclick="JaxonHolaMundo.decirHola(1);return false;" />
+
+</body>
+
+<?php
+// 6. Insert Jaxon JavaScript code at the end of the page
+echo $jaxon->getJs();
+echo $jaxon->getScript();
+?>    
+</html>
+```
+
+<Note>
+Notice how Jaxon automatically generates the `JaxonHolaMundo` JavaScript object from your PHP `HolaMundo` class.
+</Note>
+
+## Callable Functions
+
+You can also register standalone functions:
+
+```php
+<?php
+use Jaxon\Jaxon;
+use function Jaxon\jaxon;
+
+// Define a function
+function saludar($nombre) {
+  $respuesta = jaxon()->newResponse();
+  $respuesta->alert("Hola, " . $nombre . "!");
+  return $respuesta;
+}
+
+// Register the function
+$jaxon = jaxon();
+$jaxon->register(Jaxon::CALLABLE_FUNCTION, 'saludar');
+
+if($jaxon->canProcessRequest()) {
+  $jaxon->processRequest();
+}
+?>
+
+<!-- Call from JavaScript -->
+<button onclick="jaxon_saludar('María')">Saludar a María</button>
+```
+
+## Response Object Methods
+
+Jaxon's response object provides many methods for DOM manipulation and user feedback:
+
+### alert()
+
+Show an alert dialog:
+
+```php
+$respuesta->alert('This is an alert message!');
+```
+
+### assign()
+
+Set the content of an element:
+
+```php
+// Set innerHTML
+$respuesta->assign('elementId', 'innerHTML', '<p>New content</p>');
+
+// Set innerText
+$respuesta->assign('elementId', 'innerText', 'Plain text content');
+
+// Set attribute value
+$respuesta->assign('elementId', 'value', 'form field value');
+```
+
+### append()
+
+Append content to an element:
+
+```php
+$respuesta->append('elementId', 'innerHTML', '<p>Additional content</p>');
+```
+
+### prepend()
+
+Prepend content to an element:
+
+```php
+$respuesta->prepend('elementId', 'innerHTML', '<p>Content at the beginning</p>');
+```
+
+### remove()
+
+Remove an element from the DOM:
+
+```php
+$respuesta->remove('elementId');
+```
+
+### setStyle()
+
+Change CSS styles:
+
+```php
+$respuesta->setStyle('elementId', 'color', 'red');
+$respuesta->setStyle('elementId', 'background-color', '#f0f0f0');
+```
+
+### addClass() / removeClass()
+
+Manipulate CSS classes:
+
+```php
+$respuesta->addClass('elementId', 'active');
+$respuesta->removeClass('elementId', 'hidden');
+```
+
+## Real-World Example: Chat Application
+
+Here's a complete chat application using Jaxon:
+
+```php index.php
+<?php
+require (__DIR__ . '/../vendor/autoload.php');
+
+use Jaxon\Jaxon;
+use function Jaxon\jaxon;
+
+// 1. Get a reference to the singleton jaxon object
+$jaxon = jaxon();
+
+// 2. Define function to handle incoming messages
+function enviarMensaje($mensaje) {
+  // Sanitize the message
+  $mensaje = strip_tags($mensaje);
+
+  // Save the message to a log file
+  file_put_contents('chat.log', $mensaje . PHP_EOL, FILE_APPEND);
+}
+
+// 3. Define function to retrieve chat log
+function getLogDelChat() {
+  // Read the contents of the file and split by lines
+  $log = file_get_contents('chat.log');
+  $log = preg_replace('/\r\n|\n|\r/', "<br>", $log);
+
+  // Send the response
+  $respuesta = jaxon()->newResponse();
+  $respuesta->assign('cajaDeChat', 'innerHTML', $log);
+  return $respuesta;
+}
+
+// 4. Register functions with Jaxon
+$jaxon->register(Jaxon::CALLABLE_FUNCTION, 'enviarMensaje');
+$jaxon->register(Jaxon::CALLABLE_FUNCTION, 'getLogDelChat');
+
+// 5. Process incoming Jaxon requests
+if($jaxon->canProcessRequest()) {
+  $jaxon->processRequest();
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Jaxon Chat</title>
+  <style>
+    #cajaDeChat {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      background: #f9f9f9;
+    }
+    #entrada {
+      width: 70%;
+      padding: 8px;
+    }
+    button {
+      padding: 8px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Chat usando Jaxon</h1>
+  <div id="cajaDeChat"></div>
+  <form onsubmit="return enviarMensaje()">
+    <input type="text" id="entrada" placeholder="Introduce un mensaje...">
+    <button type="submit">Enviar</button>
+  </form>
+  
+  <script>
+    // Function to send a message using Jaxon
+    function enviarMensaje() {
+      // Get the message from the input box
+      let mensaje = document.getElementById('entrada').value;
+
+      // Send the message to the server using Jaxon
+      jaxon_enviarMensaje(mensaje);
+
+      // Clear the input box
+      document.getElementById('entrada').value = '';
+
+      // Prevent the default form action
+      return false;
+    }
+
+    // Function to update chat messages
+    function actualizarCajaChat() {
+      // Get chat messages from the server using Jaxon
+      jaxon_getLogDelChat();
+    }
+
+    // Update the chat box every 2 seconds
+    setInterval(actualizarCajaChat, 2000);
+  </script>
+
+</body>
+
+<?php
+// 7. Insert Jaxon JavaScript code at the end of the page
+echo $jaxon->getJs();
+echo $jaxon->getScript();
+?>      
+</html>
+```
+
+<Warning>
+In production applications, implement proper authentication and sanitization to prevent security vulnerabilities like XSS and unauthorized access.
+</Warning>
+
+## Configuration Options
+
+Jaxon provides various configuration options:
+
+```php
+$jaxon = jaxon();
+
+// Set JavaScript library URI (if using local copy)
+$jaxon->setOption('js.lib.uri', '/js/');
+
+// Set response encoding
+$jaxon->setOption('core.encoding', 'UTF-8');
+
+// Enable debug mode
+$jaxon->setOption('core.debug.on', true);
+
+// Set request timeout
+$jaxon->setOption('core.request.timeout', 5000);
+```
+
+## Advantages of Jaxon
+
+<Steps>
+  <Step title="Simplified development">
+    Call PHP code directly from JavaScript without writing XMLHttpRequest boilerplate.
+  </Step>
+  
+  <Step title="Type safety">
+    Work with PHP objects and methods with full IDE support.
+  </Step>
+  
+  <Step title="Built-in DOM manipulation">
+    Use response object methods instead of manual DOM operations.
+  </Step>
+  
+  <Step title="Automatic code generation">
+    JavaScript proxy functions are generated automatically.
+  </Step>
+  
+  <Step title="Easy maintenance">
+    Changes to PHP classes automatically reflect in JavaScript calls.
+  </Step>
+</Steps>
+
+## Best Practices
+
+<Steps>
+  <Step title="Validate input data">
+    Always sanitize and validate data received from JavaScript calls.
+  </Step>
+  
+  <Step title="Use callable classes">
+    Organize related functionality into classes for better code structure.
+  </Step>
+  
+  <Step title="Handle errors gracefully">
+    Return appropriate error responses to inform users of issues.
+  </Step>
+  
+  <Step title="Separate concerns">
+    Keep business logic separate from Jaxon response handling.
+  </Step>
+  
+  <Step title="Include JavaScript at page end">
+    Place `getJs()` and `getScript()` calls before the closing `</body>` tag.
+  </Step>
+</Steps>
+
+## Common Patterns
+
+### Form Processing
+
+```php
+class FormProcessor {
+  public function processForm($formData) {
+    $response = jaxon()->newResponse();
+    
+    // Validate form data
+    if (empty($formData['email'])) {
+      $response->alert('Email is required');
+      return $response;
+    }
+    
+    // Process the form
+    // ...
+    
+    $response->assign('result', 'innerHTML', '<p>Form submitted successfully!</p>');
+    $response->addClass('result', 'success');
+    
+    return $response;
+  }
+}
+```
+
+### Database Operations
+
+```php
+class UserManager {
+  public function getUser($userId) {
+    $response = jaxon()->newResponse();
+    
+    // Fetch user from database
+    $user = $this->database->getUserById($userId);
+    
+    if ($user) {
+      $html = "<h3>{$user->name}</h3>";
+      $html .= "<p>Email: {$user->email}</p>";
+      $response->assign('userInfo', 'innerHTML', $html);
+    } else {
+      $response->alert('User not found');
+    }
+    
+    return $response;
+  }
+}
+```
+
+## Next Steps
+
+Now that you understand Jaxon basics, explore:
+- [Building interactive applications](/ajax/interactive-applications)
+- [Advanced Jaxon features and plugins](https://www.jaxon-php.org/docs/)
+- [Integrating Jaxon with PHP frameworks](https://www.jaxon-php.org/docs/frameworks.html)

@@ -1,0 +1,554 @@
+---
+title: Consuming SOAP Services
+description: Building SOAP clients to consume web services in PHP
+---
+
+# Consuming SOAP Services
+
+Once a SOAP service is deployed with its WSDL, you can create clients to consume it. PHP's `SoapClient` class makes this straightforward.
+
+## Creating a SOAP Client
+
+The basic workflow for consuming a SOAP service:
+
+<Steps>
+  <Step title="Create SoapClient instance">
+    Initialize the client with the WSDL URL.
+  </Step>
+  
+  <Step title="Discover available methods">
+    Use `__getFunctions()` to see what operations are available.
+  </Step>
+  
+  <Step title="Call service methods">
+    Invoke methods using `__soapCall()` or direct method calls.
+  </Step>
+  
+  <Step title="Handle responses">
+    Process the returned data and handle any errors.
+  </Step>
+</Steps>
+
+## Basic SOAP Client Example
+
+Here's a complete example from TEMA-06:
+
+```php clienteW.php
+<?php
+error_reporting(E_ALL & ~E_DEPRECATED);
+
+// Service configuration
+$host = "dwcs.localhost";
+$urlrelativo = "/TEMA-06/TAREA-06-anterior/servidorSoap";
+$uri = "http://" . $host . $urlrelativo;
+$url = $uri . "/servicio.wsdl";
+
+// Create SOAP client
+try {
+    $cliente = new SoapClient($url);
+} catch (SoapFault $f) {
+    die("Error en cliente SOAP:" . $f->getMessage());
+}
+
+// Test data
+$codP = 13;  // Product code
+$codT = 14;  // Store code
+$codF = 'CONSOL';  // Family code
+
+// Call getPvp operation
+$pvp = $cliente->__soapCall('getPvp', ['id' => $codP]);
+$precio = ($pvp == null) ? "No existe es Producto" : $pvp;
+echo "Código de producto de Código $codP: $precio";
+
+// Call getFamilias operation
+echo "<br>Código de Familas";
+$familias = $cliente->__soapCall('getFamilias', []);
+echo "<ul>";
+foreach ($familias as $k => $v) {
+    echo "<code><li>$v</li></code>";
+}
+echo "</ul>";
+
+// Call getProductosFamilia operation
+$productos = $cliente->__soapCall('getProductosFamilia', ['cofF' => $codF]);
+echo "<br>Productos de la Famila $codF:";
+echo "<ul>";
+foreach ($productos as $k => $v) {
+    echo "<code><li>$v</li></code>";
+}
+echo "</ul>";
+
+// Call getStock operation
+$unidades = $cliente->__soapCall('getStock', ['codP' => $codP, 'codT' => $codT]);
+echo "<br>Unidades del producto de código; $codP en la tienda de código: $codT: $unidades";
+```
+
+## SoapClient Constructor Options
+
+The `SoapClient` constructor accepts many configuration options:
+
+```php
+<?php
+$options = [
+    'trace' => 1,                    // Enable request/response tracing
+    'exceptions' => true,            // Throw exceptions on errors
+    'cache_wsdl' => WSDL_CACHE_NONE, // Disable WSDL caching (for development)
+    'encoding' => 'UTF-8',           // Character encoding
+    'soap_version' => SOAP_1_2,      // SOAP version (SOAP_1_1 or SOAP_1_2)
+    'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP,
+    'connection_timeout' => 15,      // Connection timeout in seconds
+    'user_agent' => 'MiCliente/1.0'  // Custom user agent
+];
+
+$cliente = new SoapClient($url, $options);
+```
+
+### Key Options
+
+| Option | Description | Values |
+|--------|-------------|--------|
+| `trace` | Enable tracing for debugging | `0` (off) or `1` (on) |
+| `exceptions` | Throw exceptions on errors | `true` or `false` |
+| `cache_wsdl` | WSDL caching behavior | `WSDL_CACHE_NONE`, `WSDL_CACHE_MEMORY`, `WSDL_CACHE_DISK`, `WSDL_CACHE_BOTH` |
+| `soap_version` | SOAP protocol version | `SOAP_1_1` or `SOAP_1_2` |
+| `login` | HTTP authentication username | String |
+| `password` | HTTP authentication password | String |
+
+<Warning>
+Use `cache_wsdl => WSDL_CACHE_NONE` during development to ensure you always get the latest WSDL. In production, use caching for better performance.
+</Warning>
+
+## Calling SOAP Methods
+
+There are two ways to call SOAP methods:
+
+<Tabs>
+  <Tab title="Direct Method Call">
+    Call methods directly on the client object:
+    
+    ```php
+    <?php
+    $cliente = new SoapClient($url);
+    
+    // Direct method calls
+    $pvp = $cliente->getPvp(13);
+    $familias = $cliente->getFamilias();
+    $stock = $cliente->getStock(13, 14);
+    
+    echo "Price: $pvp";
+    ```
+    
+    This is simpler but may not work if method names conflict with PHP reserved words.
+  </Tab>
+  
+  <Tab title="__soapCall() Method">
+    Use `__soapCall()` for more control:
+    
+    ```php
+    <?php
+    $cliente = new SoapClient($url);
+    
+    // Using __soapCall()
+    $pvp = $cliente->__soapCall('getPvp', ['codP' => 13]);
+    $familias = $cliente->__soapCall('getFamilias', []);
+    $stock = $cliente->__soapCall('getStock', [
+        'codP' => 13,
+        'codT' => 14
+    ]);
+    
+    echo "Price: $pvp";
+    ```
+    
+    This method is more explicit and works with any method name.
+  </Tab>
+</Tabs>
+
+## Discovering Service Information
+
+### List Available Functions
+
+```php
+<?php
+$cliente = new SoapClient($url);
+
+// Get all available functions
+$functions = $cliente->__getFunctions();
+
+echo "<h3>Available Operations:</h3>";
+echo "<ul>";
+foreach ($functions as $function) {
+    echo "<li><code>$function</code></li>";
+}
+echo "</ul>";
+```
+
+**Output:**
+```
+Available Operations:
+- float getPvp(int $codP)
+- int getStock(int $codP, int $codT)
+- ArrayOfString getFamilias()
+- ArrayOfString getProductosFamilia(string $codF)
+```
+
+### List Data Types
+
+```php
+<?php
+$cliente = new SoapClient($url);
+
+// Get all defined types
+$types = $cliente->__getTypes();
+
+echo "<h3>Data Types:</h3>";
+echo "<ul>";
+foreach ($types as $type) {
+    echo "<li><code>$type</code></li>";
+}
+echo "</ul>";
+```
+
+## Error Handling
+
+Always wrap SOAP calls in try-catch blocks:
+
+```php
+<?php
+$options = [
+    'trace' => 1,
+    'exceptions' => true
+];
+
+try {
+    $cliente = new SoapClient($url, $options);
+    
+    // Call service method
+    $pvp = $cliente->getPvp(999);
+    
+    echo "Price: $pvp";
+    
+} catch (SoapFault $fault) {
+    echo "<h3>SOAP Error</h3>";
+    echo "<strong>Code:</strong> " . $fault->faultcode . "<br>";
+    echo "<strong>Message:</strong> " . $fault->faultstring . "<br>";
+    
+    // Show request/response for debugging (only in development!)
+    if (isset($cliente)) {
+        echo "<h4>Last Request:</h4>";
+        echo "<pre>" . htmlspecialchars($cliente->__getLastRequest()) . "</pre>";
+        
+        echo "<h4>Last Response:</h4>";
+        echo "<pre>" . htmlspecialchars($cliente->__getLastResponse()) . "</pre>";
+    }
+}
+```
+
+## Debugging SOAP Calls
+
+When `trace` is enabled, you can inspect the actual SOAP messages:
+
+```php
+<?php
+$options = ['trace' => 1, 'exceptions' => true];
+$cliente = new SoapClient($url, $options);
+
+try {
+    // Make a call
+    $pvp = $cliente->getPvp(13);
+    
+    // View the request XML
+    echo "<h3>SOAP Request:</h3>";
+    echo "<pre>" . htmlspecialchars($cliente->__getLastRequest()) . "</pre>";
+    
+    // View the request headers
+    echo "<h3>Request Headers:</h3>";
+    echo "<pre>" . htmlspecialchars($cliente->__getLastRequestHeaders()) . "</pre>";
+    
+    // View the response XML
+    echo "<h3>SOAP Response:</h3>";
+    echo "<pre>" . htmlspecialchars($cliente->__getLastResponse()) . "</pre>";
+    
+    // View the response headers
+    echo "<h3>Response Headers:</h3>";
+    echo "<pre>" . htmlspecialchars($cliente->__getLastResponseHeaders()) . "</pre>";
+    
+} catch (SoapFault $f) {
+    echo "Error: " . $f->getMessage();
+}
+```
+
+<Note>
+**Debugging Methods:**
+
+- `__getLastRequest()` - Returns the XML of the last SOAP request
+- `__getLastRequestHeaders()` - Returns the HTTP headers of the last request
+- `__getLastResponse()` - Returns the XML of the last SOAP response
+- `__getLastResponseHeaders()` - Returns the HTTP headers of the last response
+
+These only work when `trace` is enabled in the options.
+</Note>
+
+## Generating Client Classes with wsdl2phpgenerator
+
+For type-safe client code, generate PHP classes from WSDL:
+
+<Steps>
+  <Step title="Install wsdl2phpgenerator">
+    ```json composer.json
+    {
+      "require": {
+        "wsdl2phpgenerator/wsdl2phpgenerator": "^3.4"
+      }
+    }
+    ```
+    
+    ```bash
+    composer install
+    ```
+  </Step>
+  
+  <Step title="Create generator script">
+    ```php generarClases.php
+    <?php
+    error_reporting(E_ALL & ~E_DEPRECATED);
+    
+    ini_set('soap.wsdl_cache_enabled', 0);
+    ini_set('soap.wsdl_cache_ttl', 0);
+    
+    require '../vendor/autoload.php';
+    
+    use Wsdl2PhpGenerator\Generator;
+    use Wsdl2PhpGenerator\Config;
+    
+    $host = "dwcs.localhost";
+    $urlrelativo = "/TEMA-06/TAREA-06-anterior/servidorSoap";
+    $uri = "http://" . $host . $urlrelativo;
+    $url = $uri . "/servicio.wsdl";
+    
+    $generator = new Generator();
+    $generator->generate(
+        new Config([
+            'inputFile' => $url,
+            'outputDir' => '../src/Clases1',
+            'namespaceName' => 'Clases\Clases1'
+        ])
+    );
+    
+    echo "Client classes generated in src/Clases1/";
+    ```
+  </Step>
+  
+  <Step title="Run the generator">
+    ```bash
+    php public/generarClases.php
+    ```
+    
+    This creates type-safe classes for the service and all operations.
+  </Step>
+  
+  <Step title="Use generated classes">
+    ```php
+    <?php
+    require '../vendor/autoload.php';
+    
+    use Clases\Clases1\ClasesOperacionesService;
+    
+    // Use the generated service class
+    $service = new ClasesOperacionesService();
+    
+    // Type-safe method calls
+    $pvp = $service->getPvp(13);
+    $familias = $service->getFamilias();
+    $stock = $service->getStock(13, 14);
+    
+    echo "Price: $pvp";
+    ```
+  </Step>
+</Steps>
+
+## Working with Complex Types
+
+When the service returns complex objects or arrays:
+
+```php
+<?php
+$cliente = new SoapClient($url);
+
+// Service returns an array
+$familias = $cliente->getFamilias();
+
+if (is_array($familias)) {
+    foreach ($familias as $familia) {
+        echo "Family: $familia<br>";
+    }
+} else {
+    echo "Single family: $familias<br>";
+}
+
+// Service returns an object
+$producto = $cliente->getProductoDetalle(13);
+
+if (is_object($producto)) {
+    echo "Name: " . $producto->nombre . "<br>";
+    echo "Price: " . $producto->pvp . "<br>";
+    echo "Stock: " . $producto->stock . "<br>";
+}
+```
+
+## Authentication
+
+If the service requires authentication:
+
+<Tabs>
+  <Tab title="HTTP Basic Auth">
+    ```php
+    <?php
+    $options = [
+        'login' => 'username',
+        'password' => 'password',
+        'authentication' => SOAP_AUTHENTICATION_BASIC
+    ];
+    
+    $cliente = new SoapClient($url, $options);
+    ```
+  </Tab>
+  
+  <Tab title="WS-Security">
+    ```php
+    <?php
+    // WS-Security requires additional libraries
+    // Example using wse-php library
+    
+    $options = [
+        'trace' => 1,
+        'exceptions' => true
+    ];
+    
+    $cliente = new SoapClient($url, $options);
+    
+    // Add WS-Security header
+    $security = new SoapHeader(
+        'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd',
+        'Security',
+        [
+            'UsernameToken' => [
+                'Username' => 'username',
+                'Password' => 'password'
+            ]
+        ]
+    );
+    
+    $cliente->__setSoapHeaders($security);
+    ```
+  </Tab>
+</Tabs>
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="Enable WSDL Caching">
+    In production, cache the WSDL to avoid repeated downloads:
+    
+    ```php
+    <?php
+    $options = [
+        'cache_wsdl' => WSDL_CACHE_BOTH,  // Cache in memory and disk
+        'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP
+    ];
+    
+    $cliente = new SoapClient($url, $options);
+    ```
+    
+    Clear the cache when the WSDL changes:
+    ```bash
+    # Find and delete cached WSDL files
+    rm /tmp/wsdl-*
+    ```
+  </Accordion>
+  
+  <Accordion title="Reuse Client Instances">
+    Create the SoapClient once and reuse it:
+    
+    ```php
+    <?php
+    class ServiceClient {
+        private static $instance = null;
+        private $client;
+        
+        private function __construct($url) {
+            $this->client = new SoapClient($url, [
+                'cache_wsdl' => WSDL_CACHE_BOTH,
+                'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP
+            ]);
+        }
+        
+        public static function getInstance($url) {
+            if (self::$instance === null) {
+                self::$instance = new self($url);
+            }
+            return self::$instance->client;
+        }
+    }
+    
+    // Usage
+    $cliente = ServiceClient::getInstance($url);
+    $pvp1 = $cliente->getPvp(13);
+    $pvp2 = $cliente->getPvp(14);
+    ```
+  </Accordion>
+  
+  <Accordion title="Connection Pooling">
+    Use persistent connections:
+    
+    ```php
+    <?php
+    $options = [
+        'keep_alive' => true,
+        'connection_timeout' => 15
+    ];
+    
+    $cliente = new SoapClient($url, $options);
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+1. **Always use try-catch**: SOAP calls can fail for many reasons
+2. **Enable tracing in development**: Use `trace => 1` to debug issues
+3. **Cache WSDL in production**: Don't download it on every request
+4. **Set reasonable timeouts**: Prevent hanging on slow services
+5. **Validate responses**: Check for null and unexpected types
+6. **Log errors**: Keep track of service failures
+7. **Use generated classes**: For type safety and IDE autocompletion
+8. **Handle arrays carefully**: SOAP may return single items as non-arrays
+9. **Secure credentials**: Never hardcode passwords in client code
+10. **Test with actual data**: Don't assume the service will always work
+
+## Common Issues
+
+<Warning>
+**Troubleshooting Checklist:**
+
+- ❓ WSDL URL is accessible from the client
+- ❓ PHP SOAP extension is enabled
+- ❓ Firewall allows outgoing SOAP requests
+- ❓ Service endpoint URL in WSDL is correct
+- ❓ Parameter names match WSDL message definitions
+- ❓ WSDL cache is cleared after service updates
+- ❓ Error reporting is enabled during development
+- ❓ SSL certificates are valid (if using HTTPS)
+</Warning>
+
+## Next Steps
+
+Now you can consume SOAP services! Continue learning:
+
+<CardGroup cols={2}>
+  <Card title="API Integration" icon="plug" href="/api-integration/curl-basics">
+    Learn to consume REST APIs with cURL
+  </Card>
+  <Card title="Assignments" icon="clipboard" href="/assignments/overview">
+    Apply your knowledge in TAREA projects
+  </Card>
+</CardGroup>

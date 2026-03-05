@@ -1,0 +1,188 @@
+---
+title: "Introduction to PDO"
+description: "Learn the basics of PHP Data Objects (PDO) for secure database access in PHP applications"
+---
+
+## What is PDO?
+
+PHP Data Objects (PDO) is a database abstraction layer that provides a consistent interface for accessing databases in PHP. PDO offers a secure, object-oriented approach to database operations with built-in protection against SQL injection attacks.
+
+<Note>
+PDO supports multiple database systems including MySQL, PostgreSQL, SQLite, and more, making your code more portable.
+</Note>
+
+## Why Use PDO?
+
+<Steps>
+  <Step title="Security">
+    PDO uses prepared statements with parameter binding, providing automatic protection against SQL injection attacks.
+  </Step>
+  
+  <Step title="Consistency">
+    The same API works across different database systems, making it easier to switch databases if needed.
+  </Step>
+  
+  <Step title="Error Handling">
+    PDO provides robust error handling through exceptions, making debugging easier.
+  </Step>
+  
+  <Step title="Performance">
+    Prepared statements can be reused, improving performance for repeated queries.
+  </Step>
+</Steps>
+
+## Basic PDO Connection
+
+Here's how to establish a database connection using PDO, extracted from the course repository:
+
+<CodeGroup>
+```php conexion.php
+<?php
+    $host = "localhost";
+    $db   = "proyecto";
+    $user = "gestor";
+    $pass = "secreto";
+    $dsn  = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+
+    try {
+        $conProyecto = new PDO($dsn, $user, $pass);
+        $conProyecto->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $ex){
+        die("Error en la conexión: mensaje: ".$ex->getMessage());
+    }
+?>
+```
+
+```php Alternative Error Mode
+<?php
+    $conProyecto = new PDO($dsn, $user, $pass);
+    $conProyecto->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+?>
+```
+</CodeGroup>
+
+### Connection Parameters Explained
+
+| Parameter | Description | Example |
+|-----------|-------------|----------|
+| `$host` | Database server address | `localhost` |
+| `$db` | Database name | `proyecto` |
+| `$user` | Database username | `gestor` |
+| `$pass` | Database password | `secreto` |
+| `$dsn` | Data Source Name string | `mysql:host=localhost;dbname=proyecto;charset=utf8mb4` |
+
+<Warning>
+Always use `charset=utf8mb4` in your DSN to ensure proper UTF-8 support and avoid character encoding issues.
+</Warning>
+
+## Error Handling Modes
+
+PDO supports three error handling modes:
+
+### PDO::ERRMODE_EXCEPTION (Recommended)
+
+```php
+$conProyecto->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+```
+
+This mode throws `PDOException` objects when errors occur, allowing you to use try-catch blocks for error handling.
+
+### PDO::ERRMODE_WARNING
+
+```php
+$conProyecto->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+```
+
+This mode emits PHP warnings but allows script execution to continue.
+
+### PDO::ERRMODE_SILENT
+
+The default mode that silently fails. **Not recommended** for development or production.
+
+## DSN Format
+
+The Data Source Name (DSN) contains the information required to connect to the database:
+
+```php
+$dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+```
+
+### DSN Components
+
+- **Driver prefix**: `mysql:` specifies the database driver
+- **Host**: `host=$host` specifies the server location
+- **Database**: `dbname=$db` specifies which database to use
+- **Charset**: `charset=utf8mb4` ensures proper character encoding
+
+## Best Practices
+
+<Steps>
+  <Step title="Separate Configuration">
+    Store database credentials in a separate file (like `conexion.php`) and include it where needed:
+    
+    ```php
+    require_once 'conexion.php';
+    ```
+  </Step>
+  
+  <Step title="Use Exception Mode">
+    Always set error mode to `PDO::ERRMODE_EXCEPTION` for better error handling.
+  </Step>
+  
+  <Step title="Close Connections">
+    Close database connections when done to free up resources:
+    
+    ```php
+    $conProyecto = null;
+    ```
+  </Step>
+  
+  <Step title="Never Hardcode Credentials">
+    In production, use environment variables or secure configuration files for database credentials.
+  </Step>
+</Steps>
+
+## Try-Catch Pattern
+
+Always wrap PDO operations in try-catch blocks:
+
+```php
+try {
+    $conProyecto = new PDO($dsn, $user, $pass);
+    $conProyecto->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // Database operations here
+    
+} catch (PDOException $ex) {
+    die("Error en la conexión: mensaje: " . $ex->getMessage());
+}
+```
+
+<Note>
+The `die()` function terminates script execution. In production applications, you should log errors securely instead of displaying them to users.
+</Note>
+
+## Connection Testing
+
+To verify your connection is working:
+
+```php
+<?php
+require_once 'conexion.php';
+
+if ($conProyecto) {
+    echo "Conexión exitosa a la base de datos";
+    $conProyecto = null;
+} else {
+    echo "Error al conectar";
+}
+?>
+```
+
+## Next Steps
+
+Now that you understand PDO basics and connection setup, you're ready to:
+
+- Learn about [MySQL Integration](/database/mysql-integration) and database schema design
+- Implement [CRUD Operations](/database/crud-operations) with prepared statements
+- Explore [Advanced Queries](/database/advanced-queries) including joins and transactions

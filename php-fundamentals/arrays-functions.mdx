@@ -1,0 +1,900 @@
+---
+title: "Arrays & Functions"
+description: "Master PHP arrays, array manipulation, custom functions, and code organization with real-world examples"
+---
+
+## Introduction to Arrays
+
+Arrays are essential data structures in PHP that store multiple values in a single variable. PHP supports both indexed and associative arrays.
+
+## Array Types
+
+### Indexed Arrays
+
+Arrays with numeric indices starting from 0:
+
+```php
+<?php
+// Creating indexed arrays
+$numeros = [1, 2, 3, 4, 5];
+$nombres = array("Juan", "María", "Pedro");
+
+// Accessing elements
+echo $numeros[0];  // Output: 1
+echo $nombres[2];  // Output: Pedro
+
+// Adding elements
+$numeros[] = 6;  // Adds to the end
+?>
+```
+
+### Associative Arrays
+
+Arrays with named keys:
+
+```php
+<?php
+// Creating associative arrays
+$persona = [
+    'nombre' => 'Juan',
+    'apellido' => 'García',
+    'edad' => 25
+];
+
+// Alternative syntax
+$curso = array(
+    'nombre' => 'DWCS',
+    'año' => 2025,
+    'activo' => true
+);
+
+// Accessing elements
+echo $persona['nombre'];  // Output: Juan
+echo $curso['año'];       // Output: 2025
+?>
+```
+
+### Multidimensional Arrays
+
+Arrays containing other arrays:
+
+```php
+<?php
+// 2D array (matrix)
+$matriz = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+];
+
+// Accessing elements
+echo $matriz[0][0];  // Output: 1
+echo $matriz[1][2];  // Output: 6
+
+// Creating matrix with loops
+for ($fila = 0; $fila < 3; $fila++) {
+    for ($columna = 0; $columna < 3; $columna++) {
+        $matriz[$fila][$columna] = rand(0, 100);
+    }
+}
+?>
+```
+
+## Array Operations
+
+### Counting Elements
+
+```php
+<?php
+$numeros = [1, 2, 3, 4, 5];
+$cantidad = count($numeros);  // Returns 5
+
+// For multidimensional arrays
+$matriz = [[1, 2], [3, 4], [5, 6]];
+$filas = count($matriz);          // Returns 3
+$columnas = count($matriz[0]);    // Returns 2
+?>
+```
+
+### Adding Elements
+
+<CodeGroup>
+
+```php End of Array
+<?php
+$frutas = ['manzana', 'naranja'];
+
+// Add to end
+$frutas[] = 'plátano';
+array_push($frutas, 'pera', 'uva');
+
+print_r($frutas);
+// Output: Array ( [0] => manzana [1] => naranja [2] => plátano [3] => pera [4] => uva )
+?>
+```
+
+```php Beginning of Array
+<?php
+$frutas = ['manzana', 'naranja'];
+
+// Add to beginning
+array_unshift($frutas, 'pera');
+
+print_r($frutas);
+// Output: Array ( [0] => pera [1] => manzana [2] => naranja )
+?>
+```
+
+</CodeGroup>
+
+### Removing Elements
+
+```php
+<?php
+$frutas = ['manzana', 'naranja', 'plátano', 'pera'];
+
+// Remove from end
+$ultima = array_pop($frutas);  // Returns 'pera'
+
+// Remove from beginning
+$primera = array_shift($frutas);  // Returns 'manzana'
+
+// Remove specific element
+unset($frutas[1]);  // Removes 'plátano'
+
+// Reset array indices
+$frutas = array_values($frutas);
+?>
+```
+
+## Iterating Over Arrays
+
+### Foreach Loop
+
+The most common way to iterate over arrays:
+
+<Tabs>
+  <Tab title="Indexed Array">
+    ```php
+    <?php
+    $numeros = [1, 2, 3, 4, 5];
+    
+    foreach ($numeros as $numero) {
+        echo $numero . " ";
+    }
+    // Output: 1 2 3 4 5
+    ?>
+    ```
+  </Tab>
+  
+  <Tab title="Associative Array">
+    ```php
+    <?php
+    $persona = [
+        'nombre' => 'Juan',
+        'apellido' => 'García',
+        'edad' => 25
+    ];
+    
+    foreach ($persona as $clave => $valor) {
+        echo "$clave: $valor<br>";
+    }
+    // Output:
+    // nombre: Juan
+    // apellido: García
+    // edad: 25
+    ?>
+    ```
+  </Tab>
+  
+  <Tab title="Multidimensional">
+    ```php
+    <?php
+    $matriz = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+    ];
+    
+    foreach ($matriz as $fila) {
+        foreach ($fila as $valor) {
+            echo $valor . " ";
+        }
+        echo "<br>";
+    }
+    // Output:
+    // 1 2 3
+    // 4 5 6
+    // 7 8 9
+    ?>
+    ```
+  </Tab>
+</Tabs>
+
+### For Loop with Arrays
+
+```php
+<?php
+$numeros = [10, 20, 30, 40, 50];
+
+for ($i = 0; $i < count($numeros); $i++) {
+    echo "Índice $i: {$numeros[$i]}<br>";
+}
+?>
+```
+
+## Array Functions
+
+### Searching Arrays
+
+```php
+<?php
+$frutas = ['manzana', 'naranja', 'plátano', 'pera'];
+
+// Check if value exists
+if (in_array('naranja', $frutas)) {
+    echo "Naranja encontrada";
+}
+
+// Find position
+$posicion = array_search('plátano', $frutas);  // Returns 2
+
+// Check if key exists
+if (array_key_exists('nombre', $persona)) {
+    echo "Clave existe";
+}
+
+// Alternative for key checking
+if (isset($persona['nombre'])) {
+    echo "Clave existe";
+}
+?>
+```
+
+### Sorting Arrays
+
+<CodeGroup>
+
+```php Sort Values
+<?php
+$numeros = [5, 2, 8, 1, 9];
+
+// Sort ascending
+sort($numeros);
+print_r($numeros);  // [1, 2, 5, 8, 9]
+
+// Sort descending
+rsort($numeros);
+print_r($numeros);  // [9, 8, 5, 2, 1]
+?>
+```
+
+```php Sort Associative
+<?php
+$edades = [
+    'Juan' => 25,
+    'María' => 30,
+    'Pedro' => 20
+];
+
+// Sort by value (maintain key association)
+asort($edades);
+print_r($edades);
+// Array ( [Pedro] => 20 [Juan] => 25 [María] => 30 )
+
+// Sort by key
+ksort($edades);
+print_r($edades);
+// Array ( [Juan] => 25 [María] => 30 [Pedro] => 20 )
+?>
+```
+
+</CodeGroup>
+
+### Merging Arrays
+
+```php
+<?php
+$array1 = [1, 2, 3];
+$array2 = [4, 5, 6];
+
+// Merge arrays
+$combinado = array_merge($array1, $array2);
+print_r($combinado);  // [1, 2, 3, 4, 5, 6]
+
+// Merge associative arrays
+$datos1 = ['nombre' => 'Juan', 'edad' => 25];
+$datos2 = ['ciudad' => 'Madrid', 'país' => 'España'];
+
+$completo = array_merge($datos1, $datos2);
+print_r($completo);
+// Array ( [nombre] => Juan [edad] => 25 [ciudad] => Madrid [país] => España )
+?>
+```
+
+## Form Arrays
+
+PHP can receive form data as arrays:
+
+```php
+<form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
+    <?php
+    $filas = 3;
+    $columnas = 3;
+    
+    for ($fila = 0; $fila < $filas; $fila++) {
+        for ($columna = 0; $columna < $columnas; $columna++) {
+            echo "<input type='number' name='matriz[$fila][$columna]' />";
+        }
+        echo "<br>";
+    }
+    ?>
+    <button type="submit">Enviar</button>
+</form>
+
+<?php
+if (isset($_GET['matriz'])) {
+    $matriz = $_GET['matriz'];
+    
+    // Process matrix
+    foreach ($matriz as $fila => $columnas) {
+        foreach ($columnas as $columna => $valor) {
+            echo "[$fila][$columna] = $valor ";
+        }
+        echo "<br>";
+    }
+}
+?>
+```
+
+## Functions
+
+Functions allow you to organize and reuse code effectively.
+
+### Basic Function Syntax
+
+```php
+<?php
+// Simple function
+function saludar() {
+    echo "¡Hola!";
+}
+
+// Call the function
+saludar();  // Output: ¡Hola!
+?>
+```
+
+### Function Parameters
+
+<Tabs>
+  <Tab title="Required Parameters">
+    ```php
+    <?php
+    function sumar($a, $b) {
+        return $a + $b;
+    }
+    
+    $resultado = sumar(5, 3);  // Returns 8
+    echo $resultado;
+    ?>
+    ```
+  </Tab>
+  
+  <Tab title="Default Parameters">
+    ```php
+    <?php
+    function saludar($nombre = "Usuario") {
+        return "¡Hola, $nombre!";
+    }
+    
+    echo saludar();          // Output: ¡Hola, Usuario!
+    echo saludar("Juan");    // Output: ¡Hola, Juan!
+    ?>
+    ```
+  </Tab>
+  
+  <Tab title="Type Hints">
+    ```php
+    <?php
+    function multiplicar(int $a, int $b): int {
+        return $a * $b;
+    }
+    
+    $resultado = multiplicar(4, 5);  // Returns 20
+    ?>
+    ```
+  </Tab>
+</Tabs>
+
+### Return Values
+
+Functions can return different types of values:
+
+<CodeGroup>
+
+```php Single Value
+<?php
+function esPrimo(int $numero): bool {
+    $raiz = floor(sqrt($numero));
+    $i = 2;
+
+    while (($i <= $raiz) && (($numero % $i) !== 0)) {
+        $i++;
+    }
+
+    if ($i > $raiz) {
+        return $numero === 1 ? false : true;
+    } else {
+        return false;
+    }
+}
+
+// Usage
+for ($i = 1; $i <= 100; $i++) {
+    if (esPrimo($i)) {
+        echo "$i ";
+    }
+}
+?>
+```
+
+```php Array Return
+<?php
+function resolverEcuacionSegundoGrado($a, $b, $c): array {
+    $discriminante = ($b * $b) - (4 * $a * $c);
+
+    if ($discriminante < 0.0) {
+        return ['ERROR', 'ERROR']; 
+    } else {
+        return [
+            (-$b + sqrt($discriminante)) / (2 * $a),
+            (-$b - sqrt($discriminante)) / (2 * $a)
+        ];
+    }
+}
+
+// Usage
+$solucion = resolverEcuacionSegundoGrado(1, -5, 6);
+echo "Raíz 1: {$solucion[0]}, Raíz 2: {$solucion[1]}";
+?>
+```
+
+</CodeGroup>
+
+### Pass by Reference
+
+Modify variables passed to functions using the `&` operator:
+
+```php
+<?php
+// Recursive function with reference parameter
+function espejo($numero, &$invertido) {
+    if ($numero == 0) {
+        return;
+    } else {
+        $invertido .= ($numero % 10);
+        espejo((int)($numero / 10), $invertido);
+    }
+}
+
+// Usage
+$numero = 12345;
+$invertido = "";
+espejo($numero, $invertido);
+echo $invertido;  // Output: 54321
+?>
+```
+
+## Practical Function Examples
+
+### Matrix Display Function
+
+From the course materials - a function that creates and displays a matrix:
+
+```php
+<?php
+function imprimirMatriz(int $filas, int $columnas): array {
+    echo "<br><br>";
+    echo "<table class='matrix'>";
+    echo "<thead></thead>";
+    echo "<tbody>";
+
+    $activa = false;
+    if (isset($_GET['matriz'])) {
+        $matriz = $_GET['matriz'];
+        $activa = true;
+    } else {
+        // Add random default values for easier debugging
+        for ($fila = 0; $fila < $filas; $fila++) {
+            for ($columna = 0; $columna < $columnas; $columna++) {
+                $matriz[$fila][$columna] = rand(0, 100);
+            }
+        }
+        $activa = true;
+    }
+
+    // Add rows to the table
+    for ($fila = 0; $fila < $filas; $fila++) {
+        echo "<tr>";
+
+        for ($columna = 0; $columna < $columnas; $columna++) {
+            echo "<td>";
+            echo "<input type='number' name=\"matriz[$fila][$columna]\" " . 
+                 ($activa ? "value=\"{$matriz[$fila][$columna]}\" " : '') . "/>";
+            echo "</td>";
+        }
+
+        echo "</tr>";
+    }
+    
+    echo "</tbody>";
+    echo "</table>";
+
+    return $matriz;
+}
+
+// Usage
+$numeroFilas = 3;
+$numeroColumnas = 3;
+$matriz = imprimirMatriz($numeroFilas, $numeroColumnas);
+?>
+```
+
+### String Encoding Function
+
+Advanced multibyte string processing from the course:
+
+```php
+<?php
+/**
+ * Encode a message using a custom cipher
+ * 
+ * @param string $mensaje Message to encode
+ * @param string $codigo Cipher code
+ * @param string $cadenaReferencia Reference string for character mapping
+ * @return string Encoded message or error message
+ */
+function codificarMensaje(string $mensaje, string $codigo, string $cadenaReferencia): string {
+    $cifrado = $mensaje;
+    $posicion = 0;
+
+    for ($i = 0; $i < mb_strlen($mensaje); $i++) {
+        // Leave spaces as-is
+        if (mb_substr($mensaje, $i, 1) === " ") {
+            $cifrado = mb_substr($cifrado, 0, $i) . " " . 
+                       mb_substr($cifrado, $i + 1, strlen($cifrado));
+        } else {
+            // Find character position in reference string
+            $posicion = mb_strpos($cadenaReferencia, mb_substr($mensaje, $i, 1));
+
+            if ($posicion === false) {
+                return "Carácter en mensaje no soportado: '" . 
+                       mb_substr($mensaje, $i, 1) . "' : PROCESO ABORTADO";
+            } else if (mb_substr($codigo, $posicion, 1) === "-") {
+                // Skip character
+                ;
+            } else if (mb_substr($codigo, $posicion, 1) === '.') {
+                // Mark for deletion (use ^ as placeholder)
+                $cifrado = mb_substr($cifrado, 0, $i) . "^" . 
+                           mb_substr($cifrado, $i + 1, mb_strlen($cifrado));
+            } else {
+                // Replace character
+                $cifrado = mb_substr($cifrado, 0, $i) . 
+                           mb_substr($codigo, $posicion, 1) . 
+                           mb_substr($cifrado, $i + 1, strlen($cifrado));
+            }
+        }
+    }
+
+    // Remove deleted characters
+    $cifrado = str_replace('^', '', $cifrado);
+  
+    return $cifrado;
+}
+
+// Usage
+$cadenaReferencia = 'abcdefghijklmnñopqrstuvwxyzABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
+$codigo = 'fkdjfklhgosidfowheoihfosfdlkfjlkdfjoiwejf2343sd987238479lkdjflk4';
+$mensaje = "Hola Mundo";
+
+$mensajeCodificado = codificarMensaje($mensaje, $codigo, $cadenaReferencia);
+echo "Mensaje codificado: $mensajeCodificado";
+?>
+```
+
+<Note>
+When working with UTF-8 strings (special characters, emojis), always use multibyte string functions (`mb_strlen`, `mb_substr`, `mb_strpos`) instead of regular string functions.
+</Note>
+
+## Code Organization with Include
+
+Organize code into separate files for better maintainability:
+
+### File Structure
+
+```
+proyecto/
+├── index.php
+├── sanitizar.php
+├── formulario1.php
+├── formulario2.php
+└── formulario3.php
+```
+
+### Using Include
+
+<CodeGroup>
+
+```php index.php
+<?php
+// Include validation functions
+include "sanitizar.php";
+
+$estado = !isset($_GET['estado']) ? 0 : intval($_GET['estado']);
+$numero = !isset($_GET['numero']) || 
+          !formatoEnteroValido($_GET['numero']) 
+          ? "INVALIDO" 
+          : intval($_GET['numero']);
+
+switch($estado) {
+    case 0:
+        $estado = 1;
+        include "formulario1.php";
+        break;
+
+    case 1:
+        $estado = 1;
+        if ($numero === "INVALIDO") {
+            include "formulario2.php";
+        } else {
+            include "formulario3.php";
+        }
+        break;
+
+    default:
+        throw new Exception("Estado no válido: " . $estado);
+}
+?>
+```
+
+```php sanitizar.php
+<?php
+/**
+ * Validate integer format (doesn't check ranges)
+ * 
+ * @param string $cadena Input string to validate
+ * @return string Original string if valid, "NOVALIDO" otherwise
+ */
+function formatoEnteroValido(string $cadena) {
+    if (preg_match("/^[+-]?\d+$/", $cadena) === 1) {
+        return $cadena;
+    } else {
+        return "NOVALIDO";
+    }
+}
+?>
+```
+
+</CodeGroup>
+
+### Include vs Require
+
+<Tabs>
+  <Tab title="include">
+    ```php
+    <?php
+    // Produces warning if file not found, script continues
+    include "config.php";
+    include_once "functions.php";  // Include only once
+    ?>
+    ```
+  </Tab>
+  
+  <Tab title="require">
+    ```php
+    <?php
+    // Produces fatal error if file not found, script stops
+    require "database.php";
+    require_once "classes.php";  // Require only once
+    ?>
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Use `require` for critical files (database connections, core functions). Use `include` for optional components (templates, plugins).
+</Warning>
+
+## Variable Scope
+
+Understanding variable scope is crucial for function development:
+
+<Steps>
+  <Step title="Local Scope">
+    Variables declared inside a function are local:
+    
+    ```php
+    <?php
+    function prueba() {
+        $local = "Solo visible dentro de la función";
+        echo $local;
+    }
+    
+    prueba();
+    // echo $local;  // Error: undefined variable
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Global Scope">
+    Access global variables inside functions:
+    
+    ```php
+    <?php
+    $global = "Variable global";
+    
+    function mostrar() {
+        global $global;
+        echo $global;
+    }
+    
+    mostrar();  // Output: Variable global
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Static Variables">
+    Preserve values between function calls:
+    
+    ```php
+    <?php
+    function contador() {
+        static $count = 0;
+        $count++;
+        echo $count;
+    }
+    
+    contador();  // Output: 1
+    contador();  // Output: 2
+    contador();  // Output: 3
+    ?>
+    ```
+  </Step>
+</Steps>
+
+## Anonymous Functions (Closures)
+
+PHP supports anonymous functions for callbacks:
+
+```php
+<?php
+// Anonymous function
+$cuadrado = function($n) {
+    return $n * $n;
+};
+
+echo $cuadrado(5);  // Output: 25
+
+// Array map with anonymous function
+$numeros = [1, 2, 3, 4, 5];
+$cuadrados = array_map(function($n) {
+    return $n * $n;
+}, $numeros);
+
+print_r($cuadrados);  // [1, 4, 9, 16, 25]
+
+// Array filter
+$pares = array_filter($numeros, function($n) {
+    return $n % 2 === 0;
+});
+
+print_r($pares);  // [2, 4]
+?>
+```
+
+## Array Manipulation Best Practices
+
+<Steps>
+  <Step title="Use Appropriate Array Type">
+    Choose indexed arrays for lists, associative arrays for structured data:
+    
+    ```php
+    <?php
+    // Good: structured data
+    $usuario = [
+        'id' => 1,
+        'nombre' => 'Juan',
+        'email' => 'juan@example.com'
+    ];
+    
+    // Good: simple list
+    $tags = ['php', 'mysql', 'javascript'];
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Validate Array Data">
+    Always check if array keys exist before accessing:
+    
+    ```php
+    <?php
+    if (isset($matriz[$fila][$columna])) {
+        $valor = $matriz[$fila][$columna];
+    } else {
+        $valor = 0;  // Default value
+    }
+    ?>
+    ```
+  </Step>
+  
+  <Step title="Use Built-in Functions">
+    Leverage PHP's extensive array function library:
+    
+    ```php
+    <?php
+    // Instead of manual loops
+    $suma = array_sum($numeros);
+    $promedio = array_sum($numeros) / count($numeros);
+    $max = max($numeros);
+    $min = min($numeros);
+    ?>
+    ```
+  </Step>
+</Steps>
+
+## Complete Example: Prime Number Function
+
+Here's a complete working example from the course:
+
+```php
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Números Primos</title>
+</head>
+<body>
+    <div class="primos">
+        <pre>
+<?php
+/**
+ * Check if a number is prime
+ * 
+ * @param int $numero Number to check
+ * @return bool true if prime, false otherwise
+ */
+function esPrimo(int $numero): bool {
+    $raiz = floor(sqrt($numero));
+    $i = 2;
+
+    // By mathematical property, only need to check up to square root
+    while (($i <= $raiz) && (($numero % $i) !== 0)) {
+        $i++;
+    }
+
+    if ($i > $raiz) {
+        return $numero === 1 ? false : true;
+    } else {
+        return false;
+    }
+}
+
+// Display first 100 numbers, showing primes
+for ($i = 1; $i <= 100; $i++) {
+    echo (esPrimo($i) ? (" " . ($i < 10 ? " " . $i : $i) . " ") : " -- ");
+    echo (($i % 10) === 0 ? "<br>" : "");
+}
+?>
+        </pre>
+    </div>
+</body>
+</html>
+```
+
+## Next Steps
+
+Now that you understand arrays and functions, explore:
+- [Object-Oriented PHP](/oop/classes-objects) - Learn classes and objects
+- [Database Operations](/database/mysql-basics) - Work with database result arrays
+- [Sessions & Cookies](/sessions/state-management) - Manage user data with arrays

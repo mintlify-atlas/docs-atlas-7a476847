@@ -1,0 +1,263 @@
+---
+title: cURL Basics
+description: Introduction to cURL for making HTTP requests in PHP
+---
+
+# cURL Basics in PHP
+
+cURL (Client URL) is a powerful library for making HTTP requests in PHP. It's essential for integrating external APIs and web services into your applications.
+
+## What is cURL?
+
+cURL allows you to:
+- Make HTTP/HTTPS requests to external APIs
+- Handle various authentication methods
+- Set custom headers and request options
+- Process responses and handle errors
+- Debug API communications
+
+<Note>
+cURL is included by default in most PHP installations. Verify with `php -m | grep curl`
+</Note>
+
+## Basic cURL Workflow
+
+<Steps>
+  <Step title="Initialize cURL">
+    Create a cURL handle using `curl_init()`
+    
+    ```php
+    $curl = curl_init();
+    ```
+  </Step>
+
+  <Step title="Configure Options">
+    Set request options using `curl_setopt_array()` or `curl_setopt()`
+    
+    ```php
+    curl_setopt_array($curl, array(
+      CURLOPT_URL => "https://api.example.com/endpoint",
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_TIMEOUT => 30
+    ));
+    ```
+  </Step>
+
+  <Step title="Execute Request">
+    Execute the request and capture the response
+    
+    ```php
+    $response = curl_exec($curl);
+    $err = curl_error($curl);
+    ```
+  </Step>
+
+  <Step title="Close Connection">
+    Always close the cURL handle to free resources
+    
+    ```php
+    curl_close($curl);
+    ```
+  </Step>
+
+  <Step title="Handle Response">
+    Process the response or handle errors
+    
+    ```php
+    if ($err) {
+      echo "cURL Error #:" . $err;
+    } else {
+      echo $response;
+    }
+    ```
+  </Step>
+</Steps>
+
+## Essential CURLOPT Options
+
+### Request Configuration
+
+| Option | Description | Example |
+|--------|-------------|--------|
+| `CURLOPT_URL` | Target URL for the request | `"https://api.example.com/data"` |
+| `CURLOPT_CUSTOMREQUEST` | HTTP method (GET, POST, PUT, DELETE) | `"GET"` |
+| `CURLOPT_RETURNTRANSFER` | Return response as string instead of outputting | `true` |
+| `CURLOPT_TIMEOUT` | Maximum time in seconds for request | `30` |
+
+### Connection Settings
+
+| Option | Description | Example |
+|--------|-------------|--------|
+| `CURLOPT_HTTP_VERSION` | HTTP protocol version | `CURL_HTTP_VERSION_1_1` |
+| `CURLOPT_MAXREDIRS` | Maximum number of redirects to follow | `10` |
+| `CURLOPT_ENCODING` | Accepted encoding types | `""` (all supported) |
+
+### Headers and Authentication
+
+| Option | Description | Example |
+|--------|-------------|--------|
+| `CURLOPT_HTTPHEADER` | Array of HTTP headers | `array("cache-control: no-cache")` |
+| `CURLOPT_USERPWD` | Username and password for authentication | `"user:password"` |
+
+## Complete Example
+
+Here's a real-world example from the course repository:
+
+```php
+<?php
+
+$curl = curl_init();
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => "https://api.example.com/data?param=value",
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "GET",
+  CURLOPT_HTTPHEADER => array(
+    "cache-control: no-cache"
+  ),
+));
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  echo $response;
+}
+```
+
+## Debugging cURL Requests
+
+### Get Transfer Information
+
+Use `curl_getinfo()` to retrieve detailed information about the request:
+
+```php
+$response = curl_exec($curl);
+$info = curl_getinfo($curl);
+
+var_dump($info);
+// Returns: HTTP code, content type, total time, etc.
+```
+
+### Enable Verbose Mode
+
+For detailed debugging, enable verbose output:
+
+```php
+curl_setopt($curl, CURLOPT_VERBOSE, true);
+```
+
+### Certificate Information
+
+To debug SSL/TLS connections:
+
+```php
+curl_setopt($curl, CURLOPT_CERTINFO, true);
+
+$response = curl_exec($curl);
+var_dump(curl_getinfo($curl));
+```
+
+<Warning>
+Verbose mode outputs debugging information directly. Only use it during development, never in production.
+</Warning>
+
+## Error Handling
+
+Always check for errors after executing a cURL request:
+
+```php
+$response = curl_exec($curl);
+$err = curl_error($curl);
+$httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+curl_close($curl);
+
+if ($err) {
+  // Connection error
+  echo "cURL Error: " . $err;
+} elseif ($httpCode >= 400) {
+  // HTTP error status
+  echo "HTTP Error: " . $httpCode;
+} else {
+  // Success
+  $data = json_decode($response, true);
+  print_r($data);
+}
+```
+
+## Working with JSON Responses
+
+Most APIs return JSON data. Parse it using `json_decode()`:
+
+```php
+$response = curl_exec($curl);
+$err = curl_error($curl);
+curl_close($curl);
+
+if (!$err) {
+  // Decode JSON to associative array
+  $data = json_decode($response, true);
+  
+  // Access data
+  echo $data['field'];
+  print_r($data);
+}
+```
+
+<Note>
+The second parameter `true` in `json_decode()` converts the JSON object to an associative array instead of an object.
+</Note>
+
+## Best Practices
+
+1. **Always close cURL handles** - Use `curl_close()` to free resources
+2. **Set reasonable timeouts** - Prevent scripts from hanging indefinitely
+3. **Check for errors** - Always validate both cURL errors and HTTP status codes
+4. **Use HTTPS** - Secure connections for API communications
+5. **Handle rate limits** - Respect API usage quotas
+6. **Cache responses** - When appropriate, cache API responses to reduce requests
+
+## Common Issues
+
+### SSL Certificate Errors
+
+If you encounter SSL certificate verification errors:
+
+```php
+// Only for development/testing - NOT for production
+curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+```
+
+<Warning>
+Disabling SSL verification is a security risk. Only use this for development with self-signed certificates.
+</Warning>
+
+### Timeout Issues
+
+Adjust timeout values based on the API's expected response time:
+
+```php
+curl_setopt($curl, CURLOPT_TIMEOUT, 60);        // Total timeout
+curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10); // Connection timeout
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="AEMET API Integration" icon="cloud-sun" href="/api-integration/aemet-api">
+    Learn to integrate Spanish weather data from AEMET
+  </Card>
+  <Card title="Weather APIs" icon="temperature-half" href="/api-integration/weather-apis">
+    Work with OpenWeatherMap and Open-Meteo APIs
+  </Card>
+</CardGroup>

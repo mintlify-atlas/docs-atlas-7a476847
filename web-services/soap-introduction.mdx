@@ -1,0 +1,193 @@
+---
+title: SOAP Introduction
+description: Understanding SOAP web services, structure, and protocols
+---
+
+# SOAP Web Services Introduction
+
+SOAP (Simple Object Access Protocol) is a messaging protocol for exchanging structured information in web services. In this course, you'll learn to create and consume SOAP services using PHP.
+
+## What is SOAP?
+
+SOAP is an XML-based protocol that allows programs running on different operating systems to communicate with each other. It defines:
+
+- **Message format**: XML structure for requests and responses
+- **Communication protocol**: Typically HTTP/HTTPS
+- **Service description**: WSDL (Web Services Description Language)
+
+<Note>
+SOAP is platform-independent and language-independent, making it ideal for enterprise integrations.
+</Note>
+
+## SOAP vs REST
+
+| Feature | SOAP | REST |
+|---------|------|------|
+| Protocol | Strict protocol with rules | Architectural style |
+| Format | XML only | JSON, XML, others |
+| Transport | HTTP, SMTP, TCP | Primarily HTTP |
+| State | Can be stateful or stateless | Stateless |
+| Complexity | More complex | Simpler |
+| Security | WS-Security standard | HTTPS, OAuth |
+
+## SOAP Message Structure
+
+A SOAP message is an XML document with three main parts:
+
+```xml
+<?xml version="1.0"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+  <soap:Header>
+    <!-- Optional header information -->
+  </soap:Header>
+  <soap:Body>
+    <!-- Required body with actual message -->
+    <m:GetPvp xmlns:m="http://www.example.com/product">
+      <m:codP>13</m:codP>
+    </m:GetPvp>
+  </soap:Body>
+</soap:Envelope>
+```
+
+### Message Components
+
+<Steps>
+  <Step title="Envelope">
+    The root element that identifies the XML document as a SOAP message. Required in every SOAP message.
+  </Step>
+  
+  <Step title="Header (Optional)">
+    Contains application-specific information like authentication credentials, transaction IDs, or routing data.
+  </Step>
+  
+  <Step title="Body (Required)">
+    Contains the actual message intended for the recipient - either a request or a response.
+  </Step>
+  
+  <Step title="Fault (Optional)">
+    Used within the Body to indicate error messages and status information.
+  </Step>
+</Steps>
+
+## SOAP Request Example
+
+When calling a SOAP service, your request might look like:
+
+```xml
+<?xml version="1.0"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+  <soap:Body>
+    <m:getPvp xmlns:m="http://www.example.com/operaciones">
+      <codP>13</codP>
+    </m:getPvp>
+  </soap:Body>
+</soap:Envelope>
+```
+
+## SOAP Response Example
+
+The server responds with:
+
+```xml
+<?xml version="1.0"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+  <soap:Body>
+    <m:getPvpResponse xmlns:m="http://www.example.com/operaciones">
+      <return>29.99</return>
+    </m:getPvpResponse>
+  </soap:Body>
+</soap:Envelope>
+```
+
+## SOAP Fault Structure
+
+When errors occur, SOAP uses a standardized fault structure:
+
+```xml
+<?xml version="1.0"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+  <soap:Body>
+    <soap:Fault>
+      <faultcode>soap:Client</faultcode>
+      <faultstring>Invalid product code</faultstring>
+      <detail>
+        <error>Product with code 999 not found</error>
+      </detail>
+    </soap:Fault>
+  </soap:Body>
+</soap:Envelope>
+```
+
+## PHP SOAP Extension
+
+PHP provides built-in SOAP support through the `SoapClient` and `SoapServer` classes:
+
+```php
+<?php
+// Check if SOAP extension is loaded
+if (!extension_loaded('soap')) {
+    die('SOAP extension not available');
+}
+
+// SOAP is available - proceed with implementation
+echo "SOAP extension is loaded and ready";
+```
+
+<Warning>
+Ensure the PHP SOAP extension is enabled in your `php.ini` file:
+```ini
+extension=soap
+```
+</Warning>
+
+## When to Use SOAP
+
+SOAP is ideal for:
+
+- **Enterprise applications** with strict contracts
+- **Financial services** requiring high security (WS-Security)
+- **Legacy system integration** where SOAP is already established
+- **Complex operations** requiring stateful interactions
+- **Formal service contracts** with WSDL documentation
+
+## Course Context
+
+In TEMA-06, you'll work with:
+
+- Creating SOAP servers with PHP classes
+- Generating WSDL files using `php2wsdl`
+- Building SOAP clients to consume services
+- Handling complex data types and arrays
+- Error handling and debugging SOAP messages
+
+## Next Steps
+
+Now that you understand SOAP basics, proceed to:
+
+<CardGroup cols={2}>
+  <Card title="WSDL Generation" icon="file-code" href="/web-services/wsdl-generation">
+    Learn to generate WSDL from PHP classes
+  </Card>
+  <Card title="Consuming Services" icon="plug" href="/web-services/consuming-services">
+    Build SOAP clients to call web services
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+<AccordionGroup>
+  <Accordion title="SOAP Specifications">
+    - SOAP 1.1: https://www.w3.org/TR/2000/NOTE-SOAP-20000508/
+    - SOAP 1.2: https://www.w3.org/TR/soap12/
+  </Accordion>
+  
+  <Accordion title="PHP SOAP Documentation">
+    - SoapServer: https://www.php.net/manual/en/class.soapserver.php
+    - SoapClient: https://www.php.net/manual/en/class.soapclient.php
+  </Accordion>
+  
+  <Accordion title="WSDL Specification">
+    - WSDL 1.1: https://www.w3.org/TR/wsdl
+    - WSDL 2.0: https://www.w3.org/TR/wsdl20/
+  </Accordion>
+</AccordionGroup>

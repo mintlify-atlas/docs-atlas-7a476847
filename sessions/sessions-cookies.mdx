@@ -1,0 +1,303 @@
+---
+title: Sessions and Cookies
+description: Understanding PHP sessions and cookies for state management in web applications
+---
+
+## Introduction
+
+PHP sessions and cookies are essential mechanisms for maintaining state across HTTP requests. While HTTP is stateless by design, these features allow you to track user information, preferences, and activity throughout their visit.
+
+## PHP Sessions
+
+### Starting a Session
+
+Every PHP script that uses sessions must call `session_start()` before any output is sent to the browser:
+
+```php
+<?php
+session_start();
+?>
+```
+
+<Warning>
+Always call `session_start()` at the very beginning of your script, before any HTML output. Headers must be sent before content.
+</Warning>
+
+### Storing Data in Sessions
+
+The `$_SESSION` superglobal array stores session data that persists across page requests:
+
+```php
+<?php
+session_start();
+
+// Store user information
+$_SESSION['nombre'] = $nombre;
+$_SESSION['usuario'] = $_SERVER['PHP_AUTH_USER'];
+
+// Store shopping cart
+$_SESSION['cesta'] = [];
+?>
+```
+
+### Real-World Example: Login Validation
+
+Here's how sessions are used in a login system from the course materials:
+
+```php
+<?php
+session_start();
+require_once 'conexion.php';
+
+function error($mensaje)
+{
+    $_SESSION['error'] = $mensaje;
+    header('Location:login.php');
+    die();
+}
+
+if (isset($_POST['login'])) {
+    $nombre = trim($_POST['usuario']);
+    $pass = trim($_POST['pass']);
+    
+    if (strlen($nombre) == 0 || strlen($pass) == 0) {
+        error("Error, El nombre o la contraseña no pueden contener solo espacios en blancos.");
+    }
+
+    // Hash password with SHA256
+    $pass1 = hash('sha256', $pass);
+    $consulta = "select * from usuarios where usuario=:u AND pass=:p";
+    $stmt = $conProyecto->prepare($consulta);
+    
+    try {
+        $stmt->execute([
+            ':u' => $nombre,
+            ':p' => $pass1
+        ]);
+    } catch (PDOException $ex) {
+        cerrarTodo($conProyecto, $stmt);
+        error("Error en la consulta a la base de datos.");
+    }
+    
+    if ($stmt->rowCount() == 0) {
+        cerrarTodo($conProyecto, $stmt);
+        error("Error, Nombre de usuario o password incorrecto");
+    }
+    
+    cerrarTodo($conProyecto, $stmt);
+    
+    // Create session with username
+    $_SESSION['nombre'] = $nombre;
+    header('Location:listado.php');
+}
+?>
+```
+
+### Checking Session Variables
+
+Protect pages by checking if the user is logged in:
+
+```php
+<?php
+session_start();
+if (!isset($_SESSION['nombre'])) {
+    header('Location:login.php');
+    die();
+}
+?>
+```
+
+### Displaying Session Errors
+
+Use sessions to pass error messages between pages:
+
+```php
+<?php
+if (isset($_SESSION['error'])) {
+    echo "<div class='mt-3 text-danger font-weight-bold text-lg'>";
+    echo $_SESSION['error'];
+    unset($_SESSION['error']);
+    echo "</div>";
+}
+?>
+```
+
+<Note>
+Always `unset()` error messages after displaying them to prevent them from appearing again on page refresh.
+</Note>
+
+### Destroying Sessions
+
+When a user logs out, clear their session data:
+
+```php
+<?php
+session_start();
+unset($_SESSION['nombre']);
+unset($_SESSION['cesta']);
+header('Location:login.php');
+?>
+```
+
+## Cookies
+
+### Creating Cookies
+
+Cookies store data on the client's browser and persist across sessions:
+
+```php
+<?php
+// Set a cookie that expires in 7 days
+setcookie(
+    $_SERVER['PHP_AUTH_USER'], 
+    $fecha, 
+    time() + 7 * 24 * 60 * 60
+);
+?>
+```
+
+<Warning>
+Like `session_start()`, `setcookie()` must be called before any output is sent to the browser.
+</Warning>
+
+### Reading Cookies
+
+Access cookies using the `$_COOKIE` superglobal:
+
+```php
+<?php
+if (isset($_COOKIE[$_SERVER['PHP_AUTH_USER']])) {
+    $mensaje = $_COOKIE[$_SERVER['PHP_AUTH_USER']];
+} else {
+    $mensaje = "Es la primera vez que visitas la página.";
+}
+?>
+```
+
+### Real-World Example: Tracking Last Visit
+
+This example from the course shows how to track when users last visited:
+
+```php
+<?php
+// Set locale and timezone
+setlocale(LC_ALL, 'es_ES.UTF-8');
+date_default_timezone_set('Europe/Madrid');
+$ahora = new DateTime();
+$fecha = strftime(
+    "Tu última visita fué el %A, %d de %B de %Y a las %H:%M:%S", 
+    date_timestamp_get($ahora)
+);
+
+// Check if cookie exists
+if (isset($_COOKIE[$_SERVER['PHP_AUTH_USER']])) {
+    $mensaje = $_COOKIE[$_SERVER['PHP_AUTH_USER']];
+} else {
+    $mensaje = "Es la primera vez que visitas la página.";
+}
+
+// Create or update cookie (expires in 1 week)
+setcookie(
+    $_SERVER['PHP_AUTH_USER'], 
+    "$fecha", 
+    time() + 7 * 24 * 60 * 60
+);
+?>
+```
+
+### Cookie Parameters
+
+The `setcookie()` function accepts several parameters:
+
+```php
+setcookie(
+    name: 'username',           // Cookie name
+    value: 'john_doe',          // Cookie value
+    expires: time() + 3600,     // Expiration (1 hour)
+    path: '/',                  // Path on server
+    domain: 'example.com',      // Domain
+    secure: true,               // HTTPS only
+    httponly: true              // Not accessible via JavaScript
+);
+```
+
+## Session vs Cookies Comparison
+
+<Steps>
+
+### Sessions
+- Data stored on the server
+- More secure for sensitive information
+- Automatic expiration when browser closes
+- Can store complex data structures
+- Requires `session_start()` on each page
+
+### Cookies
+- Data stored on the client browser
+- Can persist across browser sessions
+- Limited to 4KB per cookie
+- Visible to users (can be edited)
+- Better for long-term preferences
+
+</Steps>
+
+## Best Practices
+
+<Note>
+**Security Recommendations:**
+- Never store passwords in plain text
+- Always use `hash()` or `password_hash()` for passwords
+- Validate and sanitize all user input with `trim()`
+- Use `isset()` before accessing session/cookie variables
+- Unset sensitive session data after use
+- Set `httponly` flag on cookies to prevent XSS attacks
+</Note>
+
+## Common Session Patterns
+
+### Tracking Visit History
+
+```php
+<?php
+session_start();
+
+if (!isset($_SESSION['usuario'])) {
+    $_SESSION['usuario'] = $_SERVER['PHP_AUTH_USER'];
+}
+
+setlocale(LC_ALL, 'es_ES.UTF-8');
+date_default_timezone_set('Europe/Madrid');
+$ahora = new DateTime();
+$fecha = strftime(
+    "Tu última visita fué el %A, %d de %B de %Y a las %H:%M:%S", 
+    date_timestamp_get($ahora)
+);
+
+// Clear visit history if form submitted
+if (isset($_POST['limpiar'])) {
+    unset($_SESSION['visita']);
+} else {
+    $_SESSION['visita'][] = $fecha;
+}
+?>
+```
+
+### Displaying Visit History
+
+```php
+<?php
+if (!isset($_SESSION['visita'])) {
+    echo "<p class='text-success font-weight-bold mt-3'>Bienvenido, es tu primera Visita.</p>";
+} else {
+    echo "<p class='text-success font-weight-bold mt-3'>Tus anteriores visitas han sido: </p><ul>";
+    foreach ($_SESSION['visita'] as $k => $v) {
+        echo "<li>$v</li>";
+    }
+    echo "</ul>";
+}
+?>
+```
+
+## Summary
+
+Sessions and cookies are fundamental tools for creating stateful web applications in PHP. Use sessions for server-side data storage during a user's visit, and cookies for client-side data that needs to persist across multiple visits.

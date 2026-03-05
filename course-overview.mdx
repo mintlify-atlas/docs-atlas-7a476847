@@ -1,0 +1,351 @@
+---
+title: Course Overview
+description: Complete overview of the DWCS 2025-26 course structure, topics, and learning progression from PHP basics to advanced API integration
+---
+
+# Course Overview
+
+The **DWCS (Desarrollo Web en Contorno Servidor)** course for 2025-26 is a comprehensive server-side web development program focused on PHP, covering everything from basic syntax to advanced topics like authentication, AJAX, and external API integration.
+
+## Course Structure
+
+The course is organized into **7 main themes** (TEMA-02 through TEMA-08), each focusing on specific aspects of server-side development:
+
+<CardGroup cols={2}>
+  <Card title="TEMA-02 & 03" icon="code" href="/php-fundamentals/basics">
+    PHP Fundamentals & Forms
+  </Card>
+  <Card title="TEMA-04" icon="database" href="/database/pdo-introduction">
+    Database Connectivity (PDO/MySQLi)
+  </Card>
+  <Card title="TEMA-05" icon="cookie" href="/sessions/sessions-cookies">
+    Sessions & State Management
+  </Card>
+  <Card title="TEMA-06" icon="shield" href="/web-services/soap-introduction">
+    Web Services & Authentication
+  </Card>
+  <Card title="TEMA-07" icon="bolt" href="/ajax/xmlhttprequest">
+    AJAX & Asynchronous Communication
+  </Card>
+  <Card title="TEMA-08" icon="globe" href="/api-integration/curl-basics">
+    External APIs & OAuth2
+  </Card>
+</CardGroup>
+
+## Learning Progression
+
+The course follows a carefully structured progression:
+
+<Steps>
+  <Step title="Foundation (TEMA-02)">
+    Begin with PHP basics: variables, control structures, functions, and form handling. Learn to process user input safely and validate data.
+  </Step>
+  
+  <Step title="Data Structures (TEMA-03)">
+    Master arrays, file handling, and advanced PHP functions. Build data manipulation skills essential for real-world applications.
+  </Step>
+  
+  <Step title="Database Integration (TEMA-04)">
+    Connect PHP to MySQL databases using PDO. Learn CRUD operations, prepared statements, and database security best practices.
+  </Step>
+  
+  <Step title="State Management (TEMA-05)">
+    Implement sessions and cookies to maintain user state across requests. Build shopping cart functionality and user tracking.
+  </Step>
+  
+  <Step title="Security (TEMA-06)">
+    Develop authentication systems with login/logout functionality. Implement role-based access control and secure password handling.
+  </Step>
+  
+  <Step title="Interactive Web Apps (TEMA-07)">
+    Create dynamic, responsive applications using AJAX. Learn asynchronous communication patterns and modern web app architecture.
+  </Step>
+  
+  <Step title="API Integration (TEMA-08)">
+    Consume external APIs (weather, geolocation, currency). Implement OAuth2 authentication with Google and other providers.
+  </Step>
+</Steps>
+
+## Topic Coverage by TEMA
+
+### TEMA-02: PHP Fundamentals
+
+**Key Topics:**
+- PHP syntax and basic constructs
+- Form processing with `GET` and `POST`
+- Input validation and sanitization
+- Superglobals (`$_GET`, `$_POST`, `$_SERVER`)
+- String manipulation and formatting
+
+**Directory Structure:**
+```
+TEMA-02/
+├── BOLETINES/
+│   ├── DWES-Boletin-01/  # Basic exercises
+│   ├── DWES-Boletin-02/  # Form handling
+│   └── ... (up to Boletin-10)
+├── TAREA-02A/            # Assignment A
+└── TAREA-02B/            # Assignment B
+```
+
+**Example:** Simple form calculator (`TEMA-02/BOLETINES/DWES-Boletin-01/E01/index.php`)
+
+### TEMA-03: Advanced PHP
+
+**Key Topics:**
+- Multi-dimensional arrays
+- File system operations
+- Regular expressions
+- Error handling
+- Code organization
+
+**Directory Structure:**
+```
+TEMA-03/
+├── BOLETINES/            # Practice exercises
+└── TAREA-03/             # Main assignment
+```
+
+### TEMA-04: Database Connectivity
+
+**Key Topics:**
+- PDO (PHP Data Objects) vs MySQLi
+- Database connection management
+- CRUD operations (Create, Read, Update, Delete)
+- Prepared statements and SQL injection prevention
+- Transaction handling
+
+**Directory Structure:**
+```
+TEMA-04/
+├── SQL/
+│   ├── proyecto.sql      # Database schema
+│   └── datosProyecto.sql # Sample data
+├── TAREA-04/             # Database CRUD assignment
+├── ej3_1_3.php
+├── ej3_1_4.php
+└── ej4_1.php
+```
+
+**Database Schema:**
+The course uses a product inventory system with tables:
+- `tiendas` (stores)
+- `familias` (product families)
+- `productos` (products)
+- `stocks` (inventory by store)
+
+See the [Database Setup](/setup#database-setup) section for SQL scripts.
+
+### TEMA-05: Sessions & State Management
+
+**Key Topics:**
+- Session initialization and configuration
+- Cookie management
+- Shopping cart implementation
+- Session security
+- State persistence patterns
+
+**Directory Structure:**
+```
+TEMA-05/
+├── Parte01/              # Session basics
+├── Parte02/              # Advanced sessions
+├── TAREA-05-Parte1/      # Assignment part 1
+└── TAREA-05-Parte2/      # Assignment part 2 (shopping cart)
+```
+
+### TEMA-06: Authentication & Authorization
+
+**Key Topics:**
+- User authentication systems
+- Password hashing (`password_hash()`, `password_verify()`)
+- Session-based login/logout
+- Role-based access control (RBAC)
+- Security best practices
+
+**Directory Structure:**
+```
+TEMA-06/
+├── TAREA-06/             # Complete auth system
+├── apuntes_2_1_1/        # Auth basics
+├── apuntes_2_1_2/        # Session management
+├── apuntes_2_2_0_servicioSoap/  # SOAP services
+└── apuntes_2_2_2_servicioWeb/   # Web services
+```
+
+<Note>
+TEMA-06 also introduces web services (SOAP), preparing for the API integration in TEMA-08.
+</Note>
+
+### TEMA-07: AJAX & Asynchronous Communication
+
+**Key Topics:**
+- XMLHttpRequest and Fetch API
+- JSON data exchange
+- Asynchronous request patterns
+- Real-time updates
+- Jaxon PHP library integration
+
+**Directory Structure:**
+```
+TEMA-07/
+├── EXTRA_AJAX/           # AJAX examples
+├── P07_02_01_01/         # Basic AJAX
+├── P07_03_01_03/         # JSON handling
+├── jaxon/                # Jaxon library examples
+└── TAREA-07-anterior/    # Assignment
+```
+
+**Jaxon Integration:**
+The course includes extensive examples using the [Jaxon library](https://www.jaxon-php.org/) for simplified AJAX development.
+
+### TEMA-08: External APIs & OAuth2
+
+**Key Topics:**
+- RESTful API consumption
+- API authentication (keys, OAuth2)
+- JSON parsing and manipulation
+- Third-party service integration
+- Google OAuth2 implementation
+
+**Directory Structure:**
+```
+TEMA-08/
+├── EJEMPLOS_SERVICIOS/
+│   ├── AEMET/            # Spanish weather API
+│   ├── OPENWEATHERMAP/   # Weather data
+│   ├── EXCHANGERATE-API.COM/  # Currency exchange
+│   ├── GEOPLUGIN/        # Geolocation
+│   └── OPEN-METEO/       # Weather forecasts
+├── P08_04_04_01/         # API examples
+├── P08_04_04_05/         # Google OAuth2
+├── TAREA-08-anterior/    # Final assignment
+└── claves.inc.php        # API keys configuration
+```
+
+**APIs Covered:**
+- **AEMET**: Spanish meteorological agency weather data
+- **OpenWeatherMap**: Global weather information
+- **ExchangeRate-API**: Currency conversion rates
+- **GeoPlugin**: IP geolocation services
+- **Google OAuth2**: User authentication and authorization
+
+<Warning>
+API keys are required for TEMA-08 exercises. See the [API Configuration](/setup#api-keys-configuration) section for setup instructions.
+</Warning>
+
+## Activity Types
+
+Each TEMA includes different types of learning activities:
+
+### 1. BOLETINES (Exercise Sets)
+
+Short, focused exercises to practice specific concepts. Typically found in themes 02-03.
+
+**Structure:**
+```
+BOLETINES/
+└── DWES-Boletin-XX/
+    ├── E01/              # Exercise 1
+    ├── E02/              # Exercise 2
+    └── ...
+```
+
+Each exercise usually contains:
+- `index.php` - Main exercise file
+- Supporting files (functions, validation, etc.)
+- Sometimes includes automata diagrams (state machines) for complex flows
+
+### 2. TAREA (Assignments)
+
+Larger projects that integrate multiple concepts. These are graded assignments.
+
+**Examples:**
+- `TAREA-02A` / `TAREA-02B`: Form validation projects
+- `TAREA-04`: Complete CRUD application with database
+- `TAREA-05-Parte2`: Shopping cart implementation
+- `TAREA-06`: User authentication system
+- `TAREA-08`: API integration project with OAuth2
+
+### 3. Apuntes (Study Notes/Examples)
+
+Instructor-provided examples demonstrating best practices. Found primarily in TEMA-06.
+
+### 4. MUESTRA-EXAMEN (Exam Samples)
+
+Practice exam materials showing the expected format and difficulty level.
+
+```
+MUESTRA-EXAMEN2-DWCS/
+├── UNIDAD-04-00/         # Database exercises
+├── UNIDAD-05-00/         # Session exercises
+├── UNIDAD-06-00/         # Authentication exercises
+└── UNIDAD-07-00/         # AJAX exercises
+```
+
+Each exam unit includes:
+- SQL schema and data files
+- PHP implementation requirements
+- Complete working solutions
+
+## Repository Structure
+
+The course repository is organized as follows:
+
+```
+MP0613-DWCS/
+├── TEMA-02/              # PHP Fundamentals
+├── TEMA-03/              # Advanced PHP
+├── TEMA-04/              # Database Integration
+├── TEMA-05/              # Sessions & Cookies
+├── TEMA-06/              # Authentication
+├── TEMA-07/              # AJAX
+├── TEMA-08/              # External APIs
+├── MUESTRA-EXAMEN2-DWCS/ # Exam samples
+├── EJEMPLO-httpd-vhosts.conf  # Apache configuration
+├── EJEMPLO_vscode_launch.json # VS Code debug config
+└── README.md
+```
+
+## Development Environment
+
+The course uses:
+- **PHP 8.2+** (XAMPP distribution recommended)
+- **MySQL/MariaDB** for database work
+- **Apache** with virtual hosts for local development
+- **VS Code** with Xdebug for debugging
+
+See the [Setup Guide](/setup) for detailed installation and configuration instructions.
+
+## Getting Started
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone https://github.com/davidgacaeduxuntagal/Curso25-26-MP0613-DWCS.git
+    ```
+  </Step>
+  
+  <Step title="Set Up Your Environment">
+    Follow the [Setup Guide](/setup) to install PHP, MySQL, and configure Apache virtual hosts.
+  </Step>
+  
+  <Step title="Start with TEMA-02">
+    Begin with the fundamentals in `TEMA-02/BOLETINES/DWES-Boletin-01/`.
+  </Step>
+  
+  <Step title="Progress Through Topics">
+    Work through each TEMA sequentially, completing BOLETINES exercises before attempting TAREA assignments.
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Setup" icon="wrench" href="/setup">
+    Configure your development environment with PHP, MySQL, and Apache
+  </Card>
+  <Card title="PHP Fundamentals" icon="rocket" href="/php-fundamentals/basics">
+    Begin learning PHP fundamentals and form processing
+  </Card>
+</CardGroup>

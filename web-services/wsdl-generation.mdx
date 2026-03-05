@@ -1,0 +1,508 @@
+---
+title: WSDL Generation
+description: Generating WSDL files from PHP classes using php2wsdl
+---
+
+# WSDL Generation
+
+WSDL (Web Services Description Language) is an XML document that describes a SOAP web service. In this course, you'll learn to automatically generate WSDL files from PHP classes using the `php2wsdl` library.
+
+## What is WSDL?
+
+WSDL provides a machine-readable description of a web service, including:
+
+- **Operations**: Available methods/functions
+- **Messages**: Input and output parameters
+- **Data types**: Parameter types and complex structures
+- **Bindings**: Protocol and data format details
+- **Service endpoint**: URL where the service is accessible
+
+<Note>
+WSDL acts as a contract between the service provider and consumer, enabling automatic client code generation.
+</Note>
+
+## WSDL Structure
+
+A WSDL document contains several key sections:
+
+```xml
+<?xml version="1.0"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             targetNamespace="http://example.com/service">
+  
+  <!-- 1. Types: Data type definitions -->
+  <types>
+    <xsd:schema targetNamespace="http://example.com/service">
+      <!-- Complex type definitions -->
+    </xsd:schema>
+  </types>
+  
+  <!-- 2. Messages: Input/output messages -->
+  <message name="getPvpIn">
+    <part name="codP" type="xsd:int"/>
+  </message>
+  <message name="getPvpOut">
+    <part name="return" type="xsd:float"/>
+  </message>
+  
+  <!-- 3. Port Type: Available operations -->
+  <portType name="OperacionesPort">
+    <operation name="getPvp">
+      <input message="tns:getPvpIn"/>
+      <output message="tns:getPvpOut"/>
+    </operation>
+  </portType>
+  
+  <!-- 4. Binding: Protocol details -->
+  <binding name="OperacionesBinding" type="tns:OperacionesPort">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <!-- Operation bindings -->
+  </binding>
+  
+  <!-- 5. Service: Endpoint location -->
+  <service name="OperacionesService">
+    <port name="OperacionesPort" binding="tns:OperacionesBinding">
+      <soap:address location="http://example.com/service.php"/>
+    </port>
+  </service>
+  
+</definitions>
+```
+
+## Installing php2wsdl
+
+The `php2wsdl/php2wsdl` library generates WSDL from PHP classes. Install it with Composer:
+
+<Steps>
+  <Step title="Add to composer.json">
+    ```json composer.json
+    {
+      "require": {
+        "php2wsdl/php2wsdl": "^0.6.1"
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Install dependencies">
+    ```bash
+    composer install
+    ```
+  </Step>
+  
+  <Step title="Verify installation">
+    ```bash
+    composer show php2wsdl/php2wsdl
+    ```
+  </Step>
+</Steps>
+
+## Creating a Service Class
+
+To generate WSDL, create a PHP class with properly documented methods. The **`@soap` annotation** is crucial:
+
+```php Operaciones.php
+<?php
+
+namespace Clases;
+
+require '../vendor/autoload.php';
+
+use Clases\{Producto, Stock, Familia};
+
+class Operaciones
+{
+    /**
+     * Obtiene el PVP de un producto a partir de su codigo
+     * @soap
+     * @param int $codP
+     * @return float
+     */
+    public function getPvp($codP)
+    {
+        $producto = new Producto();
+        $producto->setId($codP);
+        $precio = $producto->getPrecio();
+        $producto = null;
+        return $precio;
+    }
+    
+    /**
+     * Devuelve el numero de unidades que existen en una tienda de un producto
+     * @soap
+     * @param int $codP Product code
+     * @param int $codT Store code
+     * @return int
+     */
+    public function getStock($codP, $codT)
+    {
+        $stock = new Stock();
+        $stock->setProducto($codP);
+        $stock->setTienda($codT);
+        $uni = $stock->getUnidadesTienda();
+        $stock = null;
+        return $uni;
+    }
+    
+    /**
+     * Devuelve un array con los codigos de todas las familias
+     * @soap
+     * @return string[]
+     */
+    public function getFamilias()
+    {
+        $familas = new Familia();
+        $valores = $familas->getFamilias();
+        $familas = null;
+        return $valores;
+    }
+    
+    /**
+     * Devuelve un array con los nombres de los productos de una familia
+     * @soap
+     * @param string $codF Family code
+     * @return string[]
+     */
+    public function getProductosFamilia($codF)
+    {
+        $productos = new Producto();
+        $datos = $productos->productoFamila($codF);
+        $productos = null;
+        return $datos;
+    }
+}
+```
+
+### Key Documentation Requirements
+
+<Warning>
+**Critical annotations for WSDL generation:**
+
+- **`@soap`**: Marks the method for inclusion in WSDL (required)
+- **`@param type $name`**: Documents each parameter type
+- **`@return type`**: Specifies the return type
+- Method description: First line of the docblock
+
+Without these annotations, methods won't appear in the generated WSDL!
+</Warning>
+
+## Generating the WSDL
+
+Create a script to generate the WSDL file:
+
+```php generarWsdl.php
+<?php
+require '../vendor/autoload.php';
+
+use PHP2WSDL\PHPClass2WSDL;
+
+// Configure your service URL
+$host = "dwcs.localhost";
+$urlrelativo = "/TEMA-06/TAREA-06-anterior/servidorSoap";
+$uri = "http://" . $host . $urlrelativo;
+$url = $uri . "/servicio.php";
+
+// Specify the class to generate WSDL from
+$class = "Clases\\Operaciones";
+
+// Create WSDL generator instance
+$wsdlGenerator = new PHPClass2WSDL($class, $url);
+
+// Generate and save WSDL
+$wsdlGenerator->generateWSDL(true);
+$fichero = $wsdlGenerator->save('../servidorSoap/servicio.wsdl');
+
+echo "WSDL generated successfully at: $fichero";
+```
+
+<Steps>
+  <Step title="Configure service URL">
+    Set the host and path where your SOAP service will be deployed.
+  </Step>
+  
+  <Step title="Specify the class">
+    Provide the fully qualified class name (with namespace).
+  </Step>
+  
+  <Step title="Generate WSDL">
+    Call `generateWSDL(true)` to create the WSDL structure.
+  </Step>
+  
+  <Step title="Save to file">
+    Use `save()` to write the WSDL to a file.
+  </Step>
+</Steps>
+
+### Running the Generator
+
+```bash
+php public/generarWsdl.php
+```
+
+This creates `servicio.wsdl` with all your service definitions.
+
+## Understanding the Generated WSDL
+
+Here's an excerpt from the generated WSDL for the `getPvp` operation:
+
+```xml servicio.wsdl
+<?xml version="1.0"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             name="Clases.Operaciones"
+             targetNamespace="http://dwcs.localhost/TEMA-06/TAREA-06-anterior/servidorSoap/servicio.php">
+  
+  <!-- Message definitions -->
+  <message name="getPvpIn">
+    <part name="codP" type="xsd:int"/>
+  </message>
+  <message name="getPvpOut">
+    <part name="return" type="xsd:float"/>
+  </message>
+  
+  <!-- Port type (interface) -->
+  <portType name="Clases.OperacionesPort">
+    <operation name="getPvp">
+      <documentation>Obtiene el PVP de un producto a partir de su codigo</documentation>
+      <input message="tns:getPvpIn"/>
+      <output message="tns:getPvpOut"/>
+    </operation>
+    <!-- Other operations... -->
+  </portType>
+  
+  <!-- Binding (implementation details) -->
+  <binding name="Clases.OperacionesBinding" type="tns:Clases.OperacionesPort">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="getPvp">
+      <soap:operation soapAction="http://dwcs.localhost/.../servicio.php#getPvp"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+      </output>
+    </operation>
+  </binding>
+  
+  <!-- Service endpoint -->
+  <service name="Clases.OperacionesService">
+    <port name="Clases.OperacionesPort" binding="tns:Clases.OperacionesBinding">
+      <soap:address location="http://dwcs.localhost/TEMA-06/TAREA-06-anterior/servidorSoap/servicio.php"/>
+    </port>
+  </service>
+  
+</definitions>
+```
+
+## Type Mapping
+
+PHP types are mapped to XML Schema types:
+
+| PHP Type | XSD Type | Example |
+|----------|----------|----------|
+| `int` | `xsd:int` | `@param int $codP` |
+| `float` | `xsd:float` | `@return float` |
+| `string` | `xsd:string` | `@param string $codF` |
+| `bool` | `xsd:boolean` | `@return bool` |
+| `array` | `soap-enc:Array` | `@return string[]` |
+| `object` | Complex type | `@return Producto` |
+
+### Array Types
+
+Specify array types in PHPDoc:
+
+```php
+/**
+ * Get all product names
+ * @soap
+ * @return string[] Array of product names
+ */
+public function getProductNames() {
+    return ['Product 1', 'Product 2', 'Product 3'];
+}
+```
+
+## Creating the SOAP Server
+
+Once you have the WSDL, create a server to handle requests:
+
+```php servicio.php
+<?php
+require '../vendor/autoload.php';
+
+$host = "dwcs.localhost";
+$urlrelativo = "/TEMA-06/TAREA-06-anterior/servidorSoap";
+$uri = "http://" . $host . $urlrelativo;
+$url = $uri . "/servicio.wsdl";
+
+$parametros = ['uri' => $url];
+
+try {
+    // Create SOAP server with WSDL
+    $server = new SoapServer(NULL, $parametros);
+    
+    // Register the service class
+    $server->setClass('Clases\\Operaciones');
+    
+    // Handle incoming requests
+    $server->handle();
+    
+} catch (SoapFault $f) {
+    die("Error in server: " . $f->getMessage());
+}
+```
+
+<Note>
+**WSDL vs Non-WSDL Mode:**
+
+- **WSDL mode**: `new SoapServer('servicio.wsdl')` - Uses WSDL file
+- **Non-WSDL mode**: `new SoapServer(NULL, ['uri' => $url])` - No WSDL file required
+
+WSDL mode is recommended for better client compatibility and automatic code generation.
+</Note>
+
+## Project Structure
+
+Typical SOAP project organization:
+
+```text
+TEMA-06/TAREA-06-anterior/
+├── composer.json
+├── vendor/
+│   └── php2wsdl/
+├── src/
+│   ├── Conexion.php
+│   ├── Operaciones.php      # Service class
+│   ├── Producto.php
+│   ├── Stock.php
+│   └── Familia.php
+├── servidorSoap/
+│   ├── servicio.php         # SOAP server endpoint
+│   └── servicio.wsdl        # Generated WSDL
+└── public/
+    ├── generarWsdl.php      # WSDL generator script
+    ├── generarClases.php    # Client class generator
+    └── cliente.php          # SOAP client
+```
+
+## Testing the WSDL
+
+After generating the WSDL, test it:
+
+<Tabs>
+  <Tab title="Browser">
+    Navigate to the WSDL URL in your browser:
+    ```
+    http://dwcs.localhost/TEMA-06/TAREA-06-anterior/servidorSoap/servicio.wsdl
+    ```
+    
+    You should see the XML document. If you see an error, check:
+    - File permissions
+    - Path configuration
+    - PHP SOAP extension enabled
+  </Tab>
+  
+  <Tab title="PHP Client">
+    ```php
+    <?php
+    $url = "http://dwcs.localhost/TEMA-06/TAREA-06-anterior/servidorSoap/servicio.wsdl";
+    
+    try {
+        $client = new SoapClient($url);
+        
+        // Get available functions
+        $functions = $client->__getFunctions();
+        print_r($functions);
+        
+        // Get types
+        $types = $client->__getTypes();
+        print_r($types);
+        
+    } catch (SoapFault $f) {
+        echo "Error: " . $f->getMessage();
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Command Line">
+    ```bash
+    # View WSDL content
+    curl http://dwcs.localhost/TEMA-06/TAREA-06-anterior/servidorSoap/servicio.wsdl
+    
+    # Validate XML
+    xmllint --noout servicio.wsdl && echo "Valid WSDL"
+    ```
+  </Tab>
+</Tabs>
+
+## Common Issues and Solutions
+
+<AccordionGroup>
+  <Accordion title="Missing @soap annotation">
+    **Problem**: Methods don't appear in WSDL
+    
+    **Solution**: Ensure every public method has `@soap` in its docblock:
+    ```php
+    /**
+     * Method description
+     * @soap
+     * @param int $id
+     * @return string
+     */
+    ```
+  </Accordion>
+  
+  <Accordion title="Wrong namespace in WSDL">
+    **Problem**: Namespace doesn't match your project structure
+    
+    **Solution**: Check the class name passed to PHPClass2WSDL includes the full namespace:
+    ```php
+    $class = "Clases\\Operaciones"; // Double backslash in string
+    ```
+  </Accordion>
+  
+  <Accordion title="WSDL not updating">
+    **Problem**: Changes to PHP class don't reflect in WSDL
+    
+    **Solution**: Delete the old WSDL file and regenerate:
+    ```bash
+    rm servidorSoap/servicio.wsdl
+    php public/generarWsdl.php
+    ```
+  </Accordion>
+  
+  <Accordion title="Invalid service URL">
+    **Problem**: SOAP client can't connect to service
+    
+    **Solution**: Verify the URLs in both generator and server match:
+    ```php
+    // generarWsdl.php
+    $url = $uri . "/servicio.php";
+    
+    // servicio.php
+    $url = $uri . "/servicio.wsdl";
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+1. **Comprehensive documentation**: Write detailed docblocks for all methods
+2. **Consistent naming**: Use clear, descriptive method names
+3. **Version control**: Include WSDL in version control for client reference
+4. **Namespace organization**: Use PSR-4 autoloading structure
+5. **Type safety**: Always specify parameter and return types
+6. **Error handling**: Document possible exceptions in docblocks
+7. **Versioning**: Include version in service name or namespace when making breaking changes
+
+## Next Steps
+
+Now that you can generate WSDL files, learn to consume them:
+
+<CardGroup cols={2}>
+  <Card title="Consuming Services" icon="plug" href="/web-services/consuming-services">
+    Build SOAP clients to call web services
+  </Card>
+  <Card title="SOAP Introduction" icon="message" href="/web-services/soap-introduction">
+    Review SOAP fundamentals
+  </Card>
+</CardGroup>

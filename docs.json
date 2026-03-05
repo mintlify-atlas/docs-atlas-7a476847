@@ -1,122 +1,94 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "DWCS Course 2025-26",
+  "theme": "linden",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
-  },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
-          }
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "primary": "#0066CC",
+    "light": "#4A90E2",
+    "dark": "#003D7A"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/davidgacaeduxuntagal/Curso25-26-MP0613-DWCS"
     }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/davidgacaeduxuntagal/Curso25-26-MP0613-DWCS"
     }
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "course-overview",
+          "setup"
+        ]
+      },
+      {
+        "group": "PHP Fundamentals",
+        "pages": [
+          "php-fundamentals/basics",
+          "php-fundamentals/forms-validation",
+          "php-fundamentals/arrays-functions"
+        ]
+      },
+      {
+        "group": "Database Programming",
+        "pages": [
+          "database/pdo-introduction",
+          "database/mysql-integration",
+          "database/crud-operations",
+          "database/advanced-queries"
+        ]
+      },
+      {
+        "group": "Session Management",
+        "pages": [
+          "sessions/sessions-cookies",
+          "sessions/authentication",
+          "sessions/blade-templates",
+          "sessions/shopping-cart"
+        ]
+      },
+      {
+        "group": "Web Services",
+        "pages": [
+          "web-services/soap-introduction",
+          "web-services/rest-apis",
+          "web-services/wsdl-generation",
+          "web-services/consuming-services"
+        ]
+      },
+      {
+        "group": "AJAX & Jaxon",
+        "pages": [
+          "ajax/xmlhttprequest",
+          "ajax/asynchronous-requests",
+          "ajax/jaxon-library",
+          "ajax/interactive-applications"
+        ]
+      },
+      {
+        "group": "API Integration",
+        "pages": [
+          "api-integration/curl-basics",
+          "api-integration/aemet-api",
+          "api-integration/weather-apis",
+          "api-integration/external-services"
+        ]
+      },
+      {
+        "group": "Assignments & Exams",
+        "pages": [
+          "assignments/overview",
+          "assignments/exam-samples",
+          "assignments/project-guidelines"
+        ]
+      }
+    ]
   }
 }

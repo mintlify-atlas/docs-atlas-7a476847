@@ -1,0 +1,819 @@
+---
+title: External Services Integration
+description: Best practices and patterns for integrating external APIs and web services in PHP
+---
+
+# External Services Integration
+
+Learn general patterns, best practices, and techniques for integrating any external API or web service into your PHP applications.
+
+## Common Integration Patterns
+
+Most modern APIs follow similar patterns. Understanding these patterns helps you integrate any service quickly and efficiently.
+
+### RESTful API Pattern
+
+Most web services use REST (Representational State Transfer) architecture:
+
+- **URLs represent resources** - `https://api.example.com/users/123`
+- **HTTP methods indicate actions** - GET (read), POST (create), PUT (update), DELETE (remove)
+- **JSON or XML responses** - Structured data format
+- **Stateless communication** - Each request is independent
+
+### Authentication Methods
+
+<Tabs>
+  <Tab title="API Key">
+    Simple authentication using a key in URL or headers:
+    
+    ```php
+    // In URL query string
+    $url = "https://api.example.com/data?api_key=" . $apiKey;
+    
+    // Or in headers
+    $headers = array(
+      "X-API-Key: " . $apiKey
+    );
+    ```
+  </Tab>
+  
+  <Tab title="Bearer Token">
+    OAuth2 and JWT tokens in Authorization header:
+    
+    ```php
+    $headers = array(
+      "Authorization: Bearer " . $token
+    );
+    ```
+  </Tab>
+  
+  <Tab title="Basic Auth">
+    Username and password authentication:
+    
+    ```php
+    curl_setopt($curl, CURLOPT_USERPWD, "username:password");
+    ```
+  </Tab>
+</Tabs>
+
+## Building a Reusable API Client
+
+### Basic API Client Class
+
+Create a reusable class for API integration:
+
+```php
+<?php
+
+class APIClient {
+  private $baseUrl;
+  private $apiKey;
+  private $timeout = 30;
+  
+  public function __construct($baseUrl, $apiKey = null) {
+    $this->baseUrl = rtrim($baseUrl, '/');
+    $this->apiKey = $apiKey;
+  }
+  
+  public function setTimeout($timeout) {
+    $this->timeout = $timeout;
+  }
+  
+  public function get($endpoint, $params = array()) {
+    $url = $this->buildUrl($endpoint, $params);
+    return $this->request('GET', $url);
+  }
+  
+  public function post($endpoint, $data = array()) {
+    $url = $this->buildUrl($endpoint);
+    return $this->request('POST', $url, $data);
+  }
+  
+  private function buildUrl($endpoint, $params = array()) {
+    $url = $this->baseUrl . '/' . ltrim($endpoint, '/');
+    
+    // Add API key if provided
+    if ($this->apiKey) {
+      $params['api_key'] = $this->apiKey;
+    }
+    
+    if (!empty($params)) {
+      $url .= '?' . http_build_query($params);
+    }
+    
+    return $url;
+  }
+  
+  private function request($method, $url, $data = null) {
+    $curl = curl_init();
+    
+    $options = array(
+      CURLOPT_URL => $url,
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_ENCODING => "",
+      CURLOPT_MAXREDIRS => 10,
+      CURLOPT_TIMEOUT => $this->timeout,
+      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      CURLOPT_CUSTOMREQUEST => $method,
+      CURLOPT_HTTPHEADER => array(
+        "cache-control: no-cache",
+        "Content-Type: application/json"
+      ),
+    );
+    
+    // Add POST data if provided
+    if ($data !== null) {
+      $options[CURLOPT_POSTFIELDS] = json_encode($data);
+    }
+    
+    curl_setopt_array($curl, $options);
+    
+    $response = curl_exec($curl);
+    $err = curl_error($curl);
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    
+    curl_close($curl);
+    
+    return $this->handleResponse($response, $err, $httpCode);
+  }
+  
+  private function handleResponse($response, $error, $httpCode) {
+    // Handle connection errors
+    if ($error) {
+      return array(
+        'success' => false,
+        'error' => 'Connection error: ' . $error
+      );
+    }
+    
+    // Handle HTTP errors
+    if ($httpCode >= 400) {
+      return array(
+        'success' => false,
+        'error' => 'HTTP error: ' . $httpCode,
+        'http_code' => $httpCode
+      );
+    }
+    
+    // Parse JSON response
+    $data = json_decode($response, true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+      return array(
+        'success' => false,
+        'error' => 'JSON parse error: ' . json_last_error_msg(),
+        'raw_response' => $response
+      );
+    }
+    
+    return array(
+      'success' => true,
+      'data' => $data
+    );
+  }
+}
+
+// Usage example
+$client = new APIClient('https://api.example.com', 'your_api_key');
+$result = $client->get('endpoint', array('param' => 'value'));
+
+if ($result['success']) {
+  print_r($result['data']);
+} else {
+  echo "Error: " . $result['error'];
+}
+```
+
+### Enhanced Client with Caching
+
+```php
+class CachedAPIClient extends APIClient {
+  private $cacheDir = 'cache';
+  private $cacheTime = 600; // 10 minutes
+  
+  public function __construct($baseUrl, $apiKey = null) {
+    parent::__construct($baseUrl, $apiKey);
+    
+    if (!is_dir($this->cacheDir)) {
+      mkdir($this->cacheDir, 0755, true);
+    }
+  }
+  
+  public function setCacheTime($seconds) {
+    $this->cacheTime = $seconds;
+  }
+  
+  public function get($endpoint, $params = array(), $useCache = true) {
+    if (!$useCache) {
+      return parent::get($endpoint, $params);
+    }
+    
+    // Generate cache key
+    $cacheKey = md5($endpoint . serialize($params));
+    $cacheFile = $this->cacheDir . '/' . $cacheKey . '.json';
+    
+    // Check cache
+    if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $this->cacheTime) {
+      return json_decode(file_get_contents($cacheFile), true);
+    }
+    
+    // Fetch fresh data
+    $result = parent::get($endpoint, $params);
+    
+    // Cache successful responses
+    if ($result['success']) {
+      file_put_contents($cacheFile, json_encode($result));
+    }
+    
+    return $result;
+  }
+  
+  public function clearCache() {
+    $files = glob($this->cacheDir . '/*.json');
+    foreach ($files as $file) {
+      unlink($file);
+    }
+  }
+}
+```
+
+## Real-World Examples from Course Repository
+
+### Example 1: Currency Exchange API
+
+Integrating ExchangeRate-API.com:
+
+```php
+<?php
+// https://www.exchangerate-api.com/docs/php-currency-api
+
+// Using file_get_contents for simple GET requests
+$divisaBase = 'EUR';
+$req_url = 'https://v6.exchangerate-api.com/v6/84c6f22029fee31e4ccd5d74/latest/' . $divisaBase;
+$response_json = file_get_contents($req_url);
+
+// Check if request succeeded
+if (false !== $response_json) {
+  try {
+    // Decode JSON response
+    $response = json_decode($response_json);
+    
+    // Check API response status
+    if ('success' === $response->result) {
+      foreach ($response->conversion_rates as $currency => $rate) {
+        echo $currency . ': ' . $rate . PHP_EOL;
+      }
+    }
+  } catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
+  }
+}
+```
+
+<Note>
+`file_get_contents()` is simpler than cURL for basic GET requests without custom headers or options.
+</Note>
+
+### Example 2: GeoPlugin IP Geolocation
+
+Integrating GeoPlugin for IP-based geolocation:
+
+```php
+<?php
+// https://www.geoplugin.com/
+
+$IP = "80.26.152.204";
+
+// Get geolocation data
+$geoPlugin_array = unserialize(
+  file_get_contents('http://www.geoplugin.net/php.gp?ip=' . $IP)
+);
+
+// Display location info
+echo var_export($geoPlugin_array);
+
+// Use currency conversion feature
+if ($geoPlugin_array['geoplugin_currencyCode'] == 'USD') {
+  // Request with different base currency
+  $geoPlugin_array = unserialize(
+    file_get_contents('http://www.geoplugin.net/php.gp?ip=' . $IP . '&base_currency=EUR')
+  );
+  
+  echo '<h3>A &#8364;800 television from Germany will cost you ';
+  echo $geoPlugin_array['geoplugin_currencySymbol_UTF8'];
+  echo round((800 * $geoPlugin_array['geoplugin_currencyConverter']), 0);
+  echo '</h3>';
+} else {
+  echo '<h3>A $800 television from the US will cost you ';
+  echo $geoPlugin_array['geoplugin_currencySymbol_UTF8'];
+  echo round((800 * $geoPlugin_array['geoplugin_currencyConverter']), 0);
+  echo '</h3>';
+}
+```
+
+<Warning>
+This API uses PHP serialization (`unserialize`). Be cautious with serialized data from external sources in production - prefer JSON APIs when possible.
+</Warning>
+
+## JSON Processing Best Practices
+
+### Proper JSON Decoding
+
+```php
+$response = curl_exec($curl);
+curl_close($curl);
+
+// Decode to associative array
+$data = json_decode($response, true);
+
+// Always check for JSON errors
+if (json_last_error() !== JSON_ERROR_NONE) {
+  echo "JSON Error: " . json_last_error_msg();
+  exit;
+}
+
+// Now safely access data
+print_r($data);
+```
+
+### Accessing Nested Data
+
+```php
+// Sample weather API response
+$weather = json_decode($response, true);
+
+// Access nested values
+$temperature = $weather['main']['temp'];
+$description = $weather['weather'][0]['description'];
+$windSpeed = $weather['wind']['speed'];
+
+// Safe access with isset() checks
+if (isset($weather['main']['temp'])) {
+  echo "Temperature: " . $weather['main']['temp'] . "°C";
+} else {
+  echo "Temperature data not available";
+}
+```
+
+### Using Objects vs Arrays
+
+<CodeGroup>
+
+```php Associative Array
+// Decode as array (second parameter = true)
+$data = json_decode($response, true);
+
+// Access with array syntax
+echo $data['name'];
+echo $data['main']['temp'];
+```
+
+```php Object
+// Decode as object (default)
+$data = json_decode($response);
+
+// Access with object syntax
+echo $data->name;
+echo $data->main->temp;
+```
+
+</CodeGroup>
+
+<Note>
+Arrays are generally preferred in PHP as they're more flexible and can be manipulated with array functions.
+</Note>
+
+## Error Handling Strategies
+
+### Comprehensive Error Handler
+
+```php
+function handleAPIError($curl, $response) {
+  $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+  $curlError = curl_error($curl);
+  
+  // Connection errors
+  if ($curlError) {
+    return array(
+      'success' => false,
+      'error_type' => 'connection',
+      'message' => $curlError
+    );
+  }
+  
+  // HTTP errors
+  if ($httpCode >= 400) {
+    $errorMessages = array(
+      400 => 'Bad Request - Invalid parameters',
+      401 => 'Unauthorized - Check API key',
+      403 => 'Forbidden - Access denied',
+      404 => 'Not Found - Invalid endpoint',
+      429 => 'Too Many Requests - Rate limit exceeded',
+      500 => 'Internal Server Error',
+      503 => 'Service Unavailable'
+    );
+    
+    $message = isset($errorMessages[$httpCode]) 
+      ? $errorMessages[$httpCode] 
+      : 'HTTP Error: ' . $httpCode;
+    
+    return array(
+      'success' => false,
+      'error_type' => 'http',
+      'http_code' => $httpCode,
+      'message' => $message
+    );
+  }
+  
+  // JSON parsing errors
+  $data = json_decode($response, true);
+  if (json_last_error() !== JSON_ERROR_NONE) {
+    return array(
+      'success' => false,
+      'error_type' => 'json',
+      'message' => json_last_error_msg(),
+      'raw_response' => substr($response, 0, 200)
+    );
+  }
+  
+  // Success
+  return array(
+    'success' => true,
+    'data' => $data
+  );
+}
+```
+
+### Retry Logic
+
+Implement automatic retries for transient failures:
+
+```php
+function requestWithRetry($url, $maxAttempts = 3, $delayMs = 1000) {
+  $attempt = 0;
+  
+  while ($attempt < $maxAttempts) {
+    $curl = curl_init();
+    
+    curl_setopt_array($curl, array(
+      CURLOPT_URL => $url,
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_TIMEOUT => 30,
+    ));
+    
+    $response = curl_exec($curl);
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $error = curl_error($curl);
+    
+    curl_close($curl);
+    
+    // Success
+    if (!$error && $httpCode < 400) {
+      return array(
+        'success' => true,
+        'data' => json_decode($response, true)
+      );
+    }
+    
+    // Don't retry client errors (4xx)
+    if ($httpCode >= 400 && $httpCode < 500 && $httpCode != 429) {
+      return array(
+        'success' => false,
+        'error' => 'Client error: ' . $httpCode
+      );
+    }
+    
+    $attempt++;
+    
+    // Wait before retrying (exponential backoff)
+    if ($attempt < $maxAttempts) {
+      usleep($delayMs * 1000 * $attempt);
+    }
+  }
+  
+  return array(
+    'success' => false,
+    'error' => 'Max retry attempts reached'
+  );
+}
+```
+
+## Rate Limiting and Throttling
+
+### Simple Rate Limiter
+
+```php
+class RateLimiter {
+  private $requestTimes = array();
+  private $maxRequests;
+  private $timeWindow;
+  
+  public function __construct($maxRequests = 60, $timeWindow = 60) {
+    $this->maxRequests = $maxRequests;
+    $this->timeWindow = $timeWindow;
+  }
+  
+  public function allowRequest() {
+    $now = time();
+    
+    // Remove old requests outside time window
+    $this->requestTimes = array_filter(
+      $this->requestTimes,
+      function($time) use ($now) {
+        return ($now - $time) < $this->timeWindow;
+      }
+    );
+    
+    // Check if limit reached
+    if (count($this->requestTimes) >= $this->maxRequests) {
+      return false;
+    }
+    
+    // Record this request
+    $this->requestTimes[] = $now;
+    return true;
+  }
+  
+  public function getWaitTime() {
+    if (empty($this->requestTimes)) {
+      return 0;
+    }
+    
+    $oldestRequest = min($this->requestTimes);
+    $waitTime = $this->timeWindow - (time() - $oldestRequest);
+    
+    return max(0, $waitTime);
+  }
+}
+
+// Usage
+$limiter = new RateLimiter(60, 60); // 60 requests per 60 seconds
+
+if ($limiter->allowRequest()) {
+  $result = $apiClient->get('/endpoint');
+} else {
+  echo "Rate limit reached. Wait " . $limiter->getWaitTime() . " seconds.";
+}
+```
+
+## Security Best Practices
+
+### Storing API Keys Securely
+
+<Steps>
+  <Step title="Use Environment Variables">
+    Store sensitive data in environment variables:
+    
+    ```php
+    // .env file (never commit to git)
+    OPENWEATHER_API_KEY=your_key_here
+    AEMET_API_KEY=your_key_here
+    ```
+    
+    ```php
+    // Load in PHP
+    $apiKey = getenv('OPENWEATHER_API_KEY');
+    ```
+  </Step>
+  
+  <Step title="Separate Configuration Files">
+    Use included files outside web root:
+    
+    ```php
+    // /etc/myapp/config.php (outside web root)
+    <?php
+    return array(
+      'openweather_key' => 'your_key_here',
+      'aemet_key' => 'your_key_here',
+    );
+    ```
+    
+    ```php
+    // In your application
+    $config = include('/etc/myapp/config.php');
+    $apiKey = $config['openweather_key'];
+    ```
+  </Step>
+  
+  <Step title="Git Ignore">
+    Always exclude sensitive files:
+    
+    ```gitignore
+    # .gitignore
+    .env
+    claves.inc.php
+    config/credentials.php
+    ```
+  </Step>
+</Steps>
+
+### Input Validation
+
+```php
+function validateLatitude($lat) {
+  $lat = floatval($lat);
+  return ($lat >= -90 && $lat <= 90) ? $lat : false;
+}
+
+function validateLongitude($lon) {
+  $lon = floatval($lon);
+  return ($lon >= -180 && $lon <= 180) ? $lon : false;
+}
+
+// Usage
+$lat = $_GET['lat'] ?? '';
+$lon = $_GET['lon'] ?? '';
+
+if (!validateLatitude($lat) || !validateLongitude($lon)) {
+  http_response_code(400);
+  echo json_encode(array('error' => 'Invalid coordinates'));
+  exit;
+}
+
+// Safe to use
+$weather = getWeather($lat, $lon);
+```
+
+### HTTPS Only
+
+<Warning>
+Always use HTTPS for API communications to protect API keys and sensitive data in transit.
+</Warning>
+
+```php
+// Enforce HTTPS in production
+if (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] !== 'on') {
+  if (php_sapi_name() !== 'cli') {
+    header('Location: https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+    exit;
+  }
+}
+```
+
+## Testing API Integrations
+
+### Mock API Responses
+
+```php
+class MockAPIClient extends APIClient {
+  private $mockResponses = array();
+  
+  public function setMockResponse($endpoint, $response) {
+    $this->mockResponses[$endpoint] = $response;
+  }
+  
+  public function get($endpoint, $params = array()) {
+    if (isset($this->mockResponses[$endpoint])) {
+      return array(
+        'success' => true,
+        'data' => $this->mockResponses[$endpoint]
+      );
+    }
+    
+    return parent::get($endpoint, $params);
+  }
+}
+
+// Usage in tests
+$client = new MockAPIClient('https://api.example.com');
+$client->setMockResponse('/weather', array(
+  'temp' => 20,
+  'condition' => 'sunny'
+));
+
+$result = $client->get('/weather');
+// Returns mocked data without making real API call
+```
+
+## Performance Optimization
+
+### Parallel Requests
+
+Fetch multiple endpoints simultaneously:
+
+```php
+function parallelCurlRequests($urls) {
+  $multiHandle = curl_multi_init();
+  $handles = array();
+  
+  // Add all URLs to multi handle
+  foreach ($urls as $key => $url) {
+    $handles[$key] = curl_init();
+    
+    curl_setopt_array($handles[$key], array(
+      CURLOPT_URL => $url,
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_TIMEOUT => 30,
+    ));
+    
+    curl_multi_add_handle($multiHandle, $handles[$key]);
+  }
+  
+  // Execute all requests
+  $running = null;
+  do {
+    curl_multi_exec($multiHandle, $running);
+    curl_multi_select($multiHandle);
+  } while ($running > 0);
+  
+  // Collect results
+  $results = array();
+  foreach ($handles as $key => $handle) {
+    $results[$key] = curl_multi_getcontent($handle);
+    curl_multi_remove_handle($multiHandle, $handle);
+    curl_close($handle);
+  }
+  
+  curl_multi_close($multiHandle);
+  
+  return $results;
+}
+
+// Usage
+$urls = array(
+  'weather' => 'https://api.open-meteo.com/v1/forecast?latitude=42&longitude=-8',
+  'geocode' => 'https://api.example.com/geocode?city=Vigo',
+);
+
+$responses = parallelCurlRequests($urls);
+$weatherData = json_decode($responses['weather'], true);
+$geocodeData = json_decode($responses['geocode'], true);
+```
+
+## Monitoring and Logging
+
+### API Request Logger
+
+```php
+class APILogger {
+  private $logFile;
+  
+  public function __construct($logFile = 'api_requests.log') {
+    $this->logFile = $logFile;
+  }
+  
+  public function log($endpoint, $method, $responseTime, $httpCode, $error = null) {
+    $timestamp = date('Y-m-d H:i:s');
+    $status = $error ? 'FAIL' : 'SUCCESS';
+    
+    $message = sprintf(
+      "[%s] %s %s %s - HTTP %d - %.3fs",
+      $timestamp,
+      $status,
+      $method,
+      $endpoint,
+      $httpCode,
+      $responseTime
+    );
+    
+    if ($error) {
+      $message .= " - Error: " . $error;
+    }
+    
+    $message .= PHP_EOL;
+    
+    file_put_contents($this->logFile, $message, FILE_APPEND);
+  }
+}
+
+// Usage
+$logger = new APILogger();
+$startTime = microtime(true);
+
+$result = $apiClient->get('/endpoint');
+
+$responseTime = microtime(true) - $startTime;
+$httpCode = $result['http_code'] ?? 200;
+$error = $result['success'] ? null : $result['error'];
+
+$logger->log('/endpoint', 'GET', $responseTime, $httpCode, $error);
+```
+
+## Summary
+
+Key takeaways for external service integration:
+
+1. **Use a reusable client class** - Don't repeat cURL setup code
+2. **Implement proper error handling** - Check connection, HTTP, and JSON errors
+3. **Cache responses** - Reduce API calls and improve performance
+4. **Respect rate limits** - Implement throttling and retry logic
+5. **Secure API keys** - Use environment variables or separate config files
+6. **Log API requests** - Monitor usage and debug issues
+7. **Test with mocks** - Don't rely on live APIs during development
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="cURL Basics" icon="terminal" href="/api-integration/curl-basics">
+    Learn cURL fundamentals
+  </Card>
+  <Card title="AEMET API" icon="cloud-sun" href="/api-integration/aemet-api">
+    Spanish weather data integration
+  </Card>
+  <Card title="Weather APIs" icon="temperature-half" href="/api-integration/weather-apis">
+    OpenWeatherMap and Open-Meteo examples
+  </Card>
+  <Card title="JSON Processing" icon="brackets-curly" href="/php-fundamentals/json">
+    Working with JSON data in PHP
+  </Card>
+</CardGroup>

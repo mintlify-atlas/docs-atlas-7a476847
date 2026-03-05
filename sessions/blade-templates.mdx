@@ -1,0 +1,543 @@
+---
+title: Blade Templates
+description: Using Blade templating engine in PHP applications for clean, maintainable views
+---
+
+## Introduction
+
+Blade is a powerful templating engine for PHP that provides a clean, elegant syntax for creating views. While originally developed for Laravel, standalone Blade can be used in any PHP project through the `philo/laravel-blade` package.
+
+## Setting Up Blade
+
+### Installation
+
+Install Blade via Composer:
+
+```bash
+composer require philo/laravel-blade
+```
+
+### Basic Configuration
+
+```php
+<?php
+error_reporting(E_ALL & ~E_DEPRECATED);
+
+session_start();
+require '../vendor/autoload.php';
+
+use Philo\Blade\Blade;
+
+$views = '../views';  // Directory for .blade.php files
+$cache = '../cache';  // Directory for compiled templates
+
+$blade = new Blade($views, $cache);
+```
+
+<Note>
+The cache directory must be writable by the web server. Blade compiles templates to PHP for better performance.
+</Note>
+
+## Rendering Views
+
+### Basic View Rendering
+
+```php login.php
+<?php
+session_start();
+require '../vendor/autoload.php';
+
+use Philo\Blade\Blade;
+
+$views = '../views';
+$cache = '../cache';
+
+$blade = new Blade($views, $cache);
+
+if (isset($_SESSION['error'])) {
+    $error = $_SESSION['error'];
+    echo $blade
+        ->view()
+        ->make('vistaLogin', compact('error'))
+        ->render();
+    unset($_SESSION['error']);
+} else {
+    echo $blade
+        ->view()
+        ->make('vistaLogin')
+        ->render();
+}
+```
+
+### Passing Data to Views
+
+```php cesta.php
+<?php
+error_reporting(E_ALL & ~E_DEPRECATED);
+
+session_start();
+if (!isset($_SESSION['nombre'])) {
+    header('Location:login.php');
+}
+
+require '../vendor/autoload.php';
+
+use Clases\Producto;
+use Philo\Blade\Blade;
+
+$views = '../views';
+$cache = '../cache';
+$blade = new Blade($views, $cache);
+
+$total = 0;
+$listado = [];
+if (isset($_SESSION['cesta'])) {
+    foreach ($_SESSION['cesta'] as $k => $v) {
+        $producto = (new Producto())->consultarProducto($k);
+        $listado[$k] = [$producto->nombre, $producto->pvp];
+        $total += $producto->pvp;
+        $producto = null;
+    }
+}
+
+$cantidad = 0;
+if (isset($_SESSION['cesta'])) {
+    $cantidad = count($_SESSION['cesta']);
+}
+
+$titulo = 'Cesta';
+$encabezado = 'Comprar Productos';
+$usuario = $_SESSION['nombre'];
+
+echo $blade
+    ->view()
+    ->make('vistaCesta', compact('titulo', 'encabezado', 'usuario', 'listado', 'cantidad', 'total'))
+    ->render();
+```
+
+## Blade Syntax
+
+### Template Inheritance
+
+#### Master Layout
+
+Create a reusable layout template:
+
+```blade plantilla1.blade.php
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <!-- css para usar Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <!--Fontawesome CDN-->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <title>@yield('titulo')</title>
+</head>
+<body style="background:#0277bd">
+<div class="float float-right d-inline-flex mt-2">
+    <i class="fa fa-shopping-cart mr-2 fa-2x"></i>
+    <input type='text' disabled class='form-control mr-2 bg-transparent text-white' value='{{$cantidad}}' size='2px'>
+    <i class="fas fa-user mr-3 fa-2x"></i>
+    <input type="text" size='10px' value='{{$usuario}}' class="form-control mr-2 bg-transparent text-white" disabled>
+    <a href='cerrar.php' class='btn btn-danger mr-2'>Salir</a>
+</div>
+<br><br>
+<div class="container mt-3">
+    <h3 class="text-center mt-3 mb-3">@yield('encabezado')</h3>
+    @yield('contenido')
+</div>
+
+</body>
+</html>
+```
+
+<Note>
+**Key Blade Directives:**
+- `@yield('name')` - Defines a section that child templates can fill
+- `{{$variable}}` - Echoes a variable with automatic HTML escaping
+- `{!! $html !!}` - Echoes unescaped HTML (use with caution)
+</Note>
+
+#### Child Template
+
+Extend the master layout and fill sections:
+
+```blade vistaCesta.blade.php
+@extends('plantillas.plantilla1')
+
+@section('titulo')
+    {{$titulo}}
+@endsection
+
+@section('encabezado')
+    {{$encabezado}}
+@endsection
+
+@section('contenido')
+    <div class="container mt-3">
+        <div class="card text-white bg-success mb-3 m-auto" style="width:40rem">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa fa-shopping-cart mr-2"></i>Carrito</h5>
+
+                @if ( count($listado) == 0 )
+                    <p class='card-text'>Carrito Vacio</p>
+                @else  
+                    <p class='card-text'>
+                    <ul>
+                    @foreach($listado as $k => $v) 
+                        <li>{{$v[0]}}, PVP ({{$v[1]}}) €.</li>
+                    @endforeach  
+                    </ul></p>
+                    <hr style='border:none; height:2px; background-color: white'>
+                    <p class='card-text'><b>Total:</b><span class='ml-3'>{{$total}} (€)</span></p>
+                @endif
+                <a href="listado.php" class="btn btn-primary mr-2">Volver</a>
+                <a href="pagar.php" class="btn btn-danger">Pagar</a>
+            </div>
+        </div>
+    </div>
+@endsection
+```
+
+### Control Structures
+
+#### Conditionals
+
+```blade vistaLogin.blade.php
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <title>Login</title>
+</head>
+
+<body style="background:silver;">
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-center h-100">
+        <div class="card">
+            <div class="card-header">
+                <h3>Login</h3>
+            </div>
+            <div class="card-body">
+                <form name='login' method='POST' action='validar.php'>
+                    <div class="input-group form-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        </div>
+                        <input type="text" class="form-control" placeholder="usuario" name='usuario' required>
+                    </div>
+                    <div class="input-group form-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-key"></i></span>
+                        </div>
+                        <input type="password" class="form-control" placeholder="contraseña" name='pass' required>
+                    </div>
+                    <div class="form-group">
+                        <input type="submit" value="Login" class="btn float-right btn-success" name='login'>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    @if (isset($error))
+        <div class="alert alert-danger h-100 mt-3">
+            <p>{{ $error }}</p>
+        </div>
+    @endif
+</div>
+
+</body>
+</html>
+```
+
+#### Loops
+
+```blade vistaListado.blade.php
+@extends('plantillas.plantilla1')
+
+@section('titulo')
+    {{$titulo}}
+@endsection
+
+@section('encabezado')
+    {{$encabezado}}
+@endsection
+
+@section('contenido')
+    <div class="container mt-3">
+        <form class="form-inline" name="vaciar" method="POST" action='{{$action}}'>
+            <a href="cesta.php" class="btn btn-success mr-2">Ir a Cesta</a>
+            <input type='submit' value='Vaciar Carro' class="btn btn-danger" name="vaciar">
+        </form>
+        
+        <table class="table table-striped table-dark mt-3">
+            <thead>
+            <tr class="text-center">
+                <th scope="col">Añadir</th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Añadido</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach($productos as $item) 
+                <tr>
+                    <th scope='row' class='text-center'>
+                        <form action='{{$action}}' method='POST'>
+                            <input type='hidden' name='id' value='{{$item->id}}'>
+                            <input type='submit' class='btn btn-primary' name='comprar' value='Añadir'>
+                        </form>
+                    </th>
+                    <td>{{$item->nombre}}, Precio: {{$item->pvp}} (€)</td>
+                    <td class='text-center'>
+                        @if( isset($cesta[$item->id]) ) 
+                            <i class='fas fa-check fa-2x'></i>
+                        @else
+                            <i class='far fa-times-circle fa-2x'></i>
+                        @endif
+                    <td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+@endsection
+```
+
+## Blade Directives Reference
+
+### Displaying Data
+
+```blade
+{{-- Escaped output (safe) --}}
+{{ $variable }}
+
+{{-- Unescaped output (dangerous - use carefully) --}}
+{!! $htmlContent !!}
+
+{{-- Comments (not rendered in HTML) --}}
+{{-- This is a Blade comment --}}
+```
+
+### Conditionals
+
+```blade
+@if (count($records) === 1)
+    I have one record!
+@elseif (count($records) > 1)
+    I have multiple records!
+@else
+    I don't have any records!
+@endif
+
+@unless (Auth::check())
+    You are not signed in.
+@endunless
+
+@isset($records)
+    // $records is defined and is not null
+@endisset
+
+@empty($records)
+    // $records is empty
+@endempty
+```
+
+### Loops
+
+```blade
+@foreach ($users as $user)
+    <p>User {{ $user->id }}: {{ $user->name }}</p>
+@endforeach
+
+@for ($i = 0; $i < 10; $i++)
+    <p>The current value is {{ $i }}</p>
+@endfor
+
+@while (true)
+    <p>Looping forever.</p>
+@endwhile
+
+@forelse ($users as $user)
+    <li>{{ $user->name }}</li>
+@empty
+    <p>No users</p>
+@endforelse
+```
+
+<Warning>
+Blade's `{{ }}` syntax automatically escapes HTML to prevent XSS attacks. Only use `{!! !!}` when you trust the source and need to render HTML.
+</Warning>
+
+## Complete Working Example
+
+### Directory Structure
+
+```
+project/
+├── public/
+│   ├── login.php
+│   ├── listado.php
+│   ├── cesta.php
+│   └── pagar.php
+├── views/
+│   ├── plantillas/
+│   │   └── plantilla1.blade.php
+│   ├── vistaLogin.blade.php
+│   ├── vistaListado.blade.php
+│   ├── vistaCesta.blade.php
+│   └── vistaPagar.blade.php
+├── cache/
+├── src/
+│   ├── Conexion.php
+│   ├── Cliente.php
+│   └── Producto.php
+└── vendor/
+```
+
+### Real-World Shopping Cart View
+
+From UNIDAD-05-02 exam sample:
+
+```blade vistaCesta.blade.php
+@extends('plantillas.plantilla1')
+
+@section('titulo')
+    {{$titulo}}
+@endsection
+
+@section('encabezado')
+    {{$encabezado}}
+@endsection
+
+@section('contenido')
+    <div class="container mt-3">
+        <div class="card text-white bg-success mb-3 m-auto" style="width:40rem">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa fa-shopping-cart mr-2"></i>Carrito</h5>
+
+                @if ( count($listado) == 0 )
+                    <p class='card-text'>Carrito Vacio</p>
+                @else  
+                    <p class='card-text'>
+                    <ul>
+                    @foreach($listado as $k => $v) 
+                        <li>{{$v[0]}}, PVP ({{$v[1]}}) €.</li>
+                    @endforeach  
+                    </ul></p>
+                    <hr style='border:none; height:2px; background-color: white'>
+                    <p class='card-text'><b>Total:</b><span class='ml-3'>{{$total}} (€)</span></p>
+                @endif
+                <a href="listado.php" class="btn btn-primary mr-2">Volver</a>
+                <a href="pagar.php" class="btn btn-danger">Pagar</a>
+            </div>
+        </div>
+    </div>
+@endsection
+```
+
+## Blade vs Plain PHP
+
+### Plain PHP Approach
+
+```php
+<?php if (isset($_SESSION['cesta'])): ?>
+    <?php $total = 0; ?>
+    <ul>
+    <?php foreach ($listado as $k => $v): ?>
+        <li><?php echo $v[0]; ?>, PVP (<?php echo $v[1]; ?>) €.</li>
+        <?php $total += $v[1]; ?>
+    <?php endforeach; ?>
+    </ul>
+    <p>Total: <?php echo $total; ?> (€)</p>
+<?php else: ?>
+    <p>Carrito Vacio</p>
+<?php endif; ?>
+```
+
+### Blade Approach
+
+```blade
+@if ( count($listado) == 0 )
+    <p>Carrito Vacio</p>
+@else  
+    <ul>
+    @foreach($listado as $k => $v) 
+        <li>{{$v[0]}}, PVP ({{$v[1]}}) €.</li>
+    @endforeach  
+    </ul>
+    <p>Total: {{$total}} (€)</p>
+@endif
+```
+
+<Note>
+Blade provides cleaner, more readable syntax while maintaining full PHP functionality. It also automatically escapes output for security.
+</Note>
+
+## Best Practices
+
+<Steps>
+
+### Organize templates logically
+Use subdirectories like `plantillas/` for layouts and partials
+
+### Keep logic in controllers
+Blade templates should focus on presentation, not business logic
+
+### Use template inheritance
+Create master layouts to avoid repeating HTML structure
+
+### Leverage the compact() function
+Pass multiple variables cleanly to views
+
+### Enable caching in production
+Blade compiles to PHP for optimal performance
+
+</Steps>
+
+## Common Patterns
+
+### Conditional Icon Display
+
+```blade
+@if( isset($cesta[$item->id]) ) 
+    <i class='fas fa-check fa-2x'></i>
+@else
+    <i class='far fa-times-circle fa-2x'></i>
+@endif
+```
+
+### Dynamic Form Actions
+
+```blade
+<form action='{{$action}}' method='POST'>
+    <input type='hidden' name='id' value='{{$item->id}}'>
+    <input type='submit' class='btn btn-primary' name='comprar' value='Añadir'>
+</form>
+```
+
+### Error Messages
+
+```blade
+@if (isset($error))
+    <div class="alert alert-danger h-100 mt-3">
+        <p>{{ $error }}</p>
+    </div>
+@endif
+```
+
+## Summary
+
+Blade templating provides a clean, maintainable way to build views in PHP applications. By separating presentation logic from business logic and using template inheritance, you can create professional, DRY (Don't Repeat Yourself) applications with enhanced security through automatic HTML escaping.

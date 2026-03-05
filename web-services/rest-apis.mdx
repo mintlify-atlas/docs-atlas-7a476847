@@ -1,0 +1,402 @@
+---
+title: REST APIs
+description: Building and consuming RESTful web services
+---
+
+# REST APIs
+
+REST (Representational State Transfer) is an architectural style for designing networked applications. RESTful APIs use HTTP methods and are typically simpler than SOAP services.
+
+## REST Principles
+
+REST is based on six fundamental constraints:
+
+<Steps>
+  <Step title="Client-Server Architecture">
+    Separation of concerns between the user interface (client) and data storage (server).
+  </Step>
+  
+  <Step title="Stateless">
+    Each request contains all information needed to process it. The server doesn't store client context between requests.
+  </Step>
+  
+  <Step title="Cacheable">
+    Responses must define themselves as cacheable or non-cacheable to improve performance.
+  </Step>
+  
+  <Step title="Uniform Interface">
+    Standardized way of communicating between client and server using HTTP methods.
+  </Step>
+  
+  <Step title="Layered System">
+    Client cannot tell if it's connected directly to the server or through intermediaries.
+  </Step>
+  
+  <Step title="Code on Demand (Optional)">
+    Servers can extend client functionality by transferring executable code.
+  </Step>
+</Steps>
+
+## HTTP Methods
+
+RESTful APIs use HTTP methods to indicate the desired action:
+
+| Method | Purpose | Example |
+|--------|---------|----------|
+| GET | Retrieve resource(s) | `GET /api/products` |
+| POST | Create new resource | `POST /api/products` |
+| PUT | Update entire resource | `PUT /api/products/13` |
+| PATCH | Partial update | `PATCH /api/products/13` |
+| DELETE | Remove resource | `DELETE /api/products/13` |
+
+## REST vs SOAP Comparison
+
+<Tabs>
+  <Tab title="REST Advantages">
+    - **Simpler**: Easier to learn and implement
+    - **Flexible formats**: JSON, XML, HTML, plain text
+    - **Performance**: Smaller message size, especially with JSON
+    - **Caching**: Built-in HTTP caching support
+    - **Browser-friendly**: Easy to test with browser tools
+  </Tab>
+  
+  <Tab title="SOAP Advantages">
+    - **Formal contract**: WSDL provides detailed service description
+    - **Built-in error handling**: Standardized fault structure
+    - **Enterprise security**: WS-Security standard
+    - **ACID compliance**: Better for complex transactions
+    - **Type safety**: Strong typing with XML Schema
+  </Tab>
+</Tabs>
+
+## REST API Design
+
+### Resource Naming
+
+Use nouns (not verbs) for resource paths:
+
+```text
+✅ Good:
+GET  /api/products          # List products
+GET  /api/products/13       # Get product 13
+POST /api/products          # Create product
+PUT  /api/products/13       # Update product 13
+DELETE /api/products/13     # Delete product 13
+
+❌ Bad:
+GET  /api/getProducts
+POST /api/createProduct
+POST /api/updateProduct/13
+POST /api/deleteProduct/13
+```
+
+### HTTP Status Codes
+
+Use appropriate status codes to indicate the result:
+
+| Code | Meaning | Usage |
+|------|---------|-------|
+| 200 | OK | Successful GET, PUT, PATCH |
+| 201 | Created | Successful POST |
+| 204 | No Content | Successful DELETE |
+| 400 | Bad Request | Invalid request data |
+| 401 | Unauthorized | Missing or invalid credentials |
+| 403 | Forbidden | Authenticated but not authorized |
+| 404 | Not Found | Resource doesn't exist |
+| 500 | Server Error | Internal server error |
+
+## Building a Simple REST API in PHP
+
+Here's a basic REST API for managing products:
+
+```php api.php
+<?php
+header('Content-Type: application/json');
+
+// Get request method and path
+$method = $_SERVER['REQUEST_METHOD'];
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$path = trim($path, '/');
+$segments = explode('/', $path);
+
+// Simple routing
+if ($segments[0] === 'api' && $segments[1] === 'products') {
+    $id = $segments[2] ?? null;
+    
+    switch ($method) {
+        case 'GET':
+            if ($id) {
+                getProduct($id);
+            } else {
+                listProducts();
+            }
+            break;
+            
+        case 'POST':
+            createProduct();
+            break;
+            
+        case 'PUT':
+            updateProduct($id);
+            break;
+            
+        case 'DELETE':
+            deleteProduct($id);
+            break;
+            
+        default:
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+    }
+} else {
+    http_response_code(404);
+    echo json_encode(['error' => 'Endpoint not found']);
+}
+
+function listProducts() {
+    // Database query to get all products
+    $products = [
+        ['id' => 1, 'nombre' => 'Producto 1', 'pvp' => 19.99],
+        ['id' => 2, 'nombre' => 'Producto 2', 'pvp' => 29.99]
+    ];
+    
+    http_response_code(200);
+    echo json_encode($products);
+}
+
+function getProduct($id) {
+    // Database query to get specific product
+    if ($id == 1) {
+        $product = ['id' => 1, 'nombre' => 'Producto 1', 'pvp' => 19.99];
+        http_response_code(200);
+        echo json_encode($product);
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'Product not found']);
+    }
+}
+
+function createProduct() {
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['nombre']) || !isset($data['pvp'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Missing required fields']);
+        return;
+    }
+    
+    // Insert into database
+    $newId = 3; // Would be from database insert
+    
+    http_response_code(201);
+    echo json_encode([
+        'id' => $newId,
+        'nombre' => $data['nombre'],
+        'pvp' => $data['pvp']
+    ]);
+}
+
+function updateProduct($id) {
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Product ID required']);
+        return;
+    }
+    
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    // Update in database
+    http_response_code(200);
+    echo json_encode([
+        'id' => $id,
+        'nombre' => $data['nombre'],
+        'pvp' => $data['pvp']
+    ]);
+}
+
+function deleteProduct($id) {
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Product ID required']);
+        return;
+    }
+    
+    // Delete from database
+    http_response_code(204);
+}
+```
+
+## Consuming REST APIs
+
+### Using cURL
+
+```php
+<?php
+// GET request
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'http://api.example.com/products');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+$products = json_decode($response, true);
+curl_close($ch);
+
+// POST request
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'http://api.example.com/products');
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'nombre' => 'Nuevo Producto',
+    'pvp' => 39.99
+]));
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+$newProduct = json_decode($response, true);
+curl_close($ch);
+```
+
+### Using file_get_contents
+
+For simple GET requests:
+
+```php
+<?php
+$url = 'http://api.example.com/products';
+$response = file_get_contents($url);
+$products = json_decode($response, true);
+
+foreach ($products as $product) {
+    echo $product['nombre'] . ': ' . $product['pvp'] . '€<br>';
+}
+```
+
+## JSON Format
+
+REST APIs typically use JSON for data exchange:
+
+```json
+{
+  "id": 13,
+  "nombre": "Portátil Dell",
+  "familia": "PORTAT",
+  "pvp": 899.99,
+  "stock": [
+    {
+      "tienda": 1,
+      "unidades": 15
+    },
+    {
+      "tienda": 2,
+      "unidades": 8
+    }
+  ]
+}
+```
+
+## API Authentication
+
+<Tabs>
+  <Tab title="API Key">
+    ```php
+    <?php
+    $apiKey = 'your-api-key-here';
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'http://api.example.com/products');
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'X-API-Key: ' . $apiKey
+    ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    ```
+  </Tab>
+  
+  <Tab title="Bearer Token">
+    ```php
+    <?php
+    $token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'http://api.example.com/products');
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token
+    ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    ```
+  </Tab>
+  
+  <Tab title="Basic Auth">
+    ```php
+    <?php
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'http://api.example.com/products');
+    curl_setopt($ch, CURLOPT_USERPWD, 'username:password');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    ```
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+```php
+<?php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'http://api.example.com/products/999');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode >= 200 && $httpCode < 300) {
+    // Success
+    $data = json_decode($response, true);
+    echo "Product: " . $data['nombre'];
+} elseif ($httpCode == 404) {
+    echo "Product not found";
+} elseif ($httpCode >= 500) {
+    echo "Server error";
+} else {
+    echo "Request failed with code: $httpCode";
+}
+```
+
+## Best Practices
+
+<Note>
+**Key REST API Best Practices:**
+
+1. Use nouns for resources, not verbs
+2. Use plural names for collections
+3. Use HTTP methods correctly
+4. Return appropriate status codes
+5. Version your API (e.g., `/api/v1/products`)
+6. Use pagination for large datasets
+7. Implement rate limiting
+8. Provide clear error messages
+9. Use HTTPS in production
+10. Document your API thoroughly
+</Note>
+
+## Course Context
+
+In TEMA-06, you'll compare REST and SOAP approaches, understanding when to use each:
+
+- **SOAP projects**: TAREA-06 implements a product catalog with SOAP services
+- **REST concepts**: Applied in API integration in TEMA-08
+- **Hybrid approaches**: Some projects may use both patterns
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="SOAP Introduction" icon="message" href="/web-services/soap-introduction">
+    Compare with SOAP web services
+  </Card>
+  <Card title="API Integration" icon="plug" href="/api-integration/curl-basics">
+    Learn to consume external APIs
+  </Card>
+</CardGroup>

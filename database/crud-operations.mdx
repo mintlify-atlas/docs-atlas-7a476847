@@ -1,0 +1,577 @@
+---
+title: "CRUD Operations"
+description: "Master Create, Read, Update, and Delete operations using PDO prepared statements"
+---
+
+## What are CRUD Operations?
+
+CRUD stands for the four basic operations of persistent storage:
+
+- **C**reate - Insert new records
+- **R**ead - Retrieve existing records  
+- **U**pdate - Modify existing records
+- **D**elete - Remove records
+
+All examples below are taken from the actual TEMA-04 project files.
+
+<Note>
+All CRUD operations in this guide use **prepared statements** for security against SQL injection attacks.
+</Note>
+
+## Setup
+
+All operations require a database connection:
+
+```php
+<?php
+require_once 'conexion.php';
+// $conProyecto is now available
+?>
+```
+
+## Read Operations
+
+Reading data is the most common operation. Let's explore different patterns.
+
+### Basic Select Query
+
+From `listado.php` - displaying all products:
+
+```php listado.php
+<?php
+require_once 'conexion.php';
+
+$consulta = "select id, nombre from productos order by nombre";
+$stmt = $conProyecto->prepare($consulta);
+
+try {
+    $stmt->execute();
+} catch (PDOException $ex) {
+    die("Error al recuperar los productos " . $ex->getMessage());
+}
+
+while ($filas = $stmt->fetch(PDO::FETCH_OBJ)) {
+    echo "<tr class='text-center'>";
+    echo "<td>{$filas->id}</td>";
+    echo "<td>{$filas->nombre}</td>";
+    echo "</tr>";
+}
+
+$stmt = null;
+$conProyecto = null;
+?>
+```
+
+### Fetch Modes
+
+PDO supports multiple fetch modes:
+
+<CodeGroup>
+```php PDO::FETCH_OBJ (Recommended)
+// Returns results as objects
+$producto = $stmt->fetch(PDO::FETCH_OBJ);
+echo $producto->nombre;  // Access as object property
+```
+
+```php PDO::FETCH_ASSOC
+// Returns results as associative array
+$producto = $stmt->fetch(PDO::FETCH_ASSOC);
+echo $producto['nombre'];  // Access as array key
+```
+
+```php PDO::FETCH_NUM
+// Returns results as indexed array
+$producto = $stmt->fetch(PDO::FETCH_NUM);
+echo $producto[0];  // Access by numeric index
+```
+</CodeGroup>
+
+### Parameterized Queries
+
+From `detalle.php` - fetching a single product by ID:
+
+```php detalle.php
+<?php
+if (!isset($_GET['id'])) {
+    header('Location:listado.php');
+}
+
+$id = $_GET['id'];
+require_once 'conexion.php';
+
+$consulta = "select * from productos where id=:i";
+$stmt = $conProyecto->prepare($consulta);
+
+try {
+    $stmt->execute([':i' => $id]);
+} catch (PDOException $ex) {
+    die("Error al recuperar el producto, mensaje de error: " . $ex->getMessage());
+}
+
+$producto = $stmt->fetch(PDO::FETCH_OBJ);
+
+if (!$producto) {
+    // Product not found
+    header('Location:listado.php');
+}
+
+// Now we can use $producto->nombre, $producto->pvp, etc.
+$stmt = null;
+$conProyecto = null;
+?>
+```
+
+<Warning>
+**Never** concatenate user input directly into SQL queries:
+
+```php
+// WRONG - Vulnerable to SQL injection!
+$consulta = "select * from productos where id=$id";
+
+// CORRECT - Use prepared statements
+$consulta = "select * from productos where id=:i";
+$stmt->execute([':i' => $id]);
+```
+</Warning>
+
+### Named Parameters vs Positional
+
+<CodeGroup>
+```php Named Parameters (Recommended)
+$consulta = "select * from productos where id=:id AND familia=:fam";
+$stmt->execute([
+    ':id' => $id,
+    ':fam' => $familia
+]);
+```
+
+```php Positional Parameters
+$consulta = "select * from productos where id=? AND familia=?";
+$stmt->execute([$id, $familia]);
+```
+</CodeGroup>
+
+Named parameters are more readable and less error-prone.
+
+## Create Operations
+
+Inserting new records into the database.
+
+### Basic Insert
+
+From `crear_guardardatos.php` - creating a new product:
+
+```php crear_guardardatos.php
+<?php
+function comprobar($n, $nc)
+{
+    if (strlen($n) == 0 || strlen($nc) == 0) {
+        echo "<b>Algunos campos del formulario No pueden estar en blanco</b>";
+        echo " <a href='crear.php'><button>Volver</button></a>";
+        exit;
+    }
+}
+
+// Recoger datos del formulario
+$nombre   = trim($_POST['nombre']);
+$nomCorto = trim($_POST['nombrec']);
+$pvp      = $_POST['pvp'];
+$des      = trim($_POST['descripcion']);
+$familia  = $_POST['familia'];
+
+// Validar datos
+comprobar($nombre, $nomCorto);
+$nomCorto = strtoupper($nomCorto);
+$nombre   = ucwords($nombre);
+
+// Preparar consulta
+$insert = "insert into productos(nombre, nombre_corto, pvp, familia, descripcion) 
+           values(:n, :nc, :p, :f, :d)";
+$stmt1 = $conProyecto->prepare($insert);
+
+try {
+    $stmt1->execute([
+        ':n'  => $nombre,
+        ':nc' => $nomCorto,
+        ':p'  => $pvp,
+        ':f'  => $familia,
+        ':d'  => $des
+    ]);
+} catch (PDOException $ex) {
+    die("Ocurrio un error al insertar el producto: " . $ex->getMessage());
+}
+
+$stmt1 = null;
+$conProyecto = null;
+
+echo "<p class='text-info font-weight-bold'>Producto guardado con éxito</p>";
+?>
+```
+
+### Getting Last Insert ID
+
+After inserting a record with an auto-increment primary key:
+
+```php
+$stmt->execute([...]);
+$lastId = $conProyecto->lastInsertId();
+echo "Nuevo producto creado con ID: $lastId";
+```
+
+<Steps>
+  <Step title="Validate Input">
+    Always validate and sanitize user input before inserting:
+    
+    ```php
+    $nombre = trim($_POST['nombre']);
+    if (strlen($nombre) == 0) {
+        die("El nombre no puede estar vacío");
+    }
+    ```
+  </Step>
+  
+  <Step title="Prepare Statement">
+    Use named parameters for clarity:
+    
+    ```php
+    $insert = "insert into productos(nombre, pvp) values(:n, :p)";
+    $stmt = $conProyecto->prepare($insert);
+    ```
+  </Step>
+  
+  <Step title="Execute with Data">
+    Pass data as an associative array:
+    
+    ```php
+    $stmt->execute([':n' => $nombre, ':p' => $pvp]);
+    ```
+  </Step>
+  
+  <Step title="Handle Errors">
+    Wrap in try-catch for proper error handling:
+    
+    ```php
+    try {
+        $stmt->execute([...]);
+    } catch (PDOException $ex) {
+        // Handle error
+    }
+    ```
+  </Step>
+</Steps>
+
+## Update Operations
+
+Modifying existing records.
+
+### Basic Update
+
+From `update.php` and `update_guardardatos.php` - updating product information:
+
+<CodeGroup>
+```php update.php (Fetch existing data)
+<?php
+if (!isset($_GET['id'])) {
+    header('Location:listado.php');
+}
+
+$id = $_GET['id'];
+require_once 'conexion.php';
+
+$consulta1 = "select * from productos where id=:i";
+$stmt1 = $conProyecto->prepare($consulta1);
+
+try {
+    $stmt1->execute([':i' => $id]);
+} catch (PDOException $ex) {
+    die("Error al recuperar el producto " . $ex->getMessage());
+}
+
+$producto = $stmt1->fetch(PDO::FETCH_OBJ);
+
+if (!$producto) {
+    header('Location:listado.php');
+}
+
+// Display form with existing data
+if (!isset($_POST['enviar'])) {
+   include "update_formularioproducto.php";
+} else {
+   include "update_guardardatos.php";
+}
+?>
+```
+
+```php update_guardardatos.php (Save changes)
+<?php
+// Validate ID
+if (!isset($_POST['id'])) {
+    header('Location:listado.php');
+    exit;
+}
+
+$id = $_POST['id'];
+
+// Collect and sanitize form data
+$nombre   = trim($_POST['nombre']);
+$nomCorto = trim($_POST['nombrec']);
+$pvp      = $_POST['pvp'];
+$familia  = $_POST['familia'];
+$des      = trim($_POST['descripcion']);
+
+// Prepare UPDATE statement
+$update = "UPDATE productos 
+           SET nombre=:n, nombre_corto=:nc, pvp=:p, familia=:f, descripcion=:d 
+           WHERE id=:i";
+           
+$stmt = $conProyecto->prepare($update);
+
+try {
+    $stmt->execute([
+        ':n'  => $nombre,
+        ':nc' => $nomCorto,
+        ':p'  => $pvp,
+        ':f'  => $familia,
+        ':d'  => $des,
+        ':i'  => $id
+    ]);
+} catch (PDOException $ex) {
+    die("Error al actualizar: " . $ex->getMessage());
+}
+
+$stmt = null;
+$conProyecto = null;
+
+header('Location:listado.php');
+?>
+```
+</CodeGroup>
+
+### Checking Affected Rows
+
+To see how many rows were modified:
+
+```php
+$stmt->execute([...]);
+$rowsAffected = $stmt->rowCount();
+
+if ($rowsAffected > 0) {
+    echo "Producto actualizado exitosamente";
+} else {
+    echo "No se realizaron cambios";
+}
+```
+
+<Note>
+If the UPDATE statement executes but no values changed (because they were the same), `rowCount()` returns 0. This is not an error!
+</Note>
+
+## Delete Operations
+
+Removing records from the database.
+
+### Basic Delete
+
+From `borrar.php` - deleting a product:
+
+```php borrar.php
+<?php
+if (!isset($_POST['id'])) {
+    header('Location:listado.php');
+}
+
+$cod = $_POST['id'];
+require_once 'conexion.php';
+
+$delete = "delete from productos where id=:i";
+$stmt = $conProyecto->prepare($delete);
+
+try {
+    $stmt->execute([':i' => $cod]);
+} catch (PDOException $ex) {
+    $stmt = null;
+    $conProyecto = null;
+    echo "Ocurrió un error al borrar el producto: " . $ex->getMessage();
+    echo " <a href='listado.php'><button>Volver</button></a>";
+    exit;
+}
+
+$stmt = null;
+$conProyecto = null;
+
+echo "<p>Producto de Código: $cod Borrado correctamente.</p>";
+echo "<a href='listado.php'><button>Volver</button></a>";
+?>
+```
+
+### Delete with Confirmation
+
+From `listado.php` - JavaScript confirmation before delete:
+
+```php
+<form action='borrar.php' method='POST' style='display:inline'>
+    <input type='hidden' name='id' value='{$filas->id}'>
+    <input type='submit' 
+           onclick="return confirm('¿Borrar Producto?')" 
+           class='btn btn-danger' 
+           value='Borrar'>
+</form>
+```
+
+<Warning>
+**Cascade Deletes**: Due to foreign key constraints with `ON DELETE CASCADE`, deleting a product will automatically delete all related stock records!
+
+```sql
+CONSTRAINT fk_stock_prod FOREIGN KEY(producto) 
+    REFERENCES productos(id) 
+    ON DELETE CASCADE
+```
+</Warning>
+
+## Resource Management
+
+Always close database resources when finished:
+
+```php
+$stmt = null;        // Close statement
+$conProyecto = null; // Close connection
+```
+
+<Steps>
+  <Step title="Close Statements">
+    Set statement variables to null after use:
+    ```php
+    $stmt = null;
+    ```
+  </Step>
+  
+  <Step title="Close Connections">
+    Set connection variables to null to free resources:
+    ```php
+    $conProyecto = null;
+    ```
+  </Step>
+  
+  <Step title="Close Early When Possible">
+    From `detalle.php` - close connection as soon as data is fetched:
+    ```php
+    $producto = $stmt->fetch(PDO::FETCH_OBJ);
+    // Data is now in $producto variable
+    $stmt = null;
+    $conProyecto = null;
+    // Continue using $producto for display
+    ```
+  </Step>
+</Steps>
+
+## Error Handling Best Practices
+
+### Development vs Production
+
+<CodeGroup>
+```php Development (Detailed Errors)
+try {
+    $stmt->execute([...]);
+} catch (PDOException $ex) {
+    die("Error: " . $ex->getMessage());
+}
+```
+
+```php Production (Generic Messages)
+try {
+    $stmt->execute([...]);
+} catch (PDOException $ex) {
+    error_log($ex->getMessage()); // Log to file
+    die("Error al procesar la solicitud. Contacte al administrador.");
+}
+```
+</CodeGroup>
+
+<Warning>
+Never display detailed database errors to end users in production. Log them securely instead.
+</Warning>
+
+## Input Validation
+
+Always validate data before database operations:
+
+```php
+// Trim whitespace
+$nombre = trim($_POST['nombre']);
+
+// Check for empty values
+if (strlen($nombre) == 0) {
+    die("El nombre no puede estar vacío");
+}
+
+// Transform data
+$nomCorto = strtoupper($nomCorto);  // Convert to uppercase
+$nombre = ucwords($nombre);          // Capitalize words
+
+// Validate numeric values
+if (!is_numeric($pvp) || $pvp < 0) {
+    die("El precio debe ser un número positivo");
+}
+```
+
+## Complete CRUD Example
+
+Here's a complete workflow combining all operations:
+
+```php
+<?php
+require_once 'conexion.php';
+
+// CREATE
+function crearProducto($nombre, $pvp, $familia) {
+    global $conProyecto;
+    $insert = "insert into productos(nombre, pvp, familia) values(:n, :p, :f)";
+    $stmt = $conProyecto->prepare($insert);
+    $stmt->execute([':n' => $nombre, ':p' => $pvp, ':f' => $familia]);
+    return $conProyecto->lastInsertId();
+}
+
+// READ
+function obtenerProducto($id) {
+    global $conProyecto;
+    $consulta = "select * from productos where id=:i";
+    $stmt = $conProyecto->prepare($consulta);
+    $stmt->execute([':i' => $id]);
+    return $stmt->fetch(PDO::FETCH_OBJ);
+}
+
+// UPDATE
+function actualizarProducto($id, $nombre, $pvp) {
+    global $conProyecto;
+    $update = "update productos set nombre=:n, pvp=:p where id=:i";
+    $stmt = $conProyecto->prepare($update);
+    $stmt->execute([':n' => $nombre, ':p' => $pvp, ':i' => $id]);
+    return $stmt->rowCount();
+}
+
+// DELETE
+function eliminarProducto($id) {
+    global $conProyecto;
+    $delete = "delete from productos where id=:i";
+    $stmt = $conProyecto->prepare($delete);
+    $stmt->execute([':i' => $id]);
+    return $stmt->rowCount();
+}
+
+// Usage example
+$nuevoId = crearProducto("Producto Test", 99.99, "CONSOL");
+$producto = obtenerProducto($nuevoId);
+actualizarProducto($nuevoId, "Producto Actualizado", 89.99);
+eliminarProducto($nuevoId);
+
+$conProyecto = null;
+?>
+```
+
+## Next Steps
+
+Now that you've mastered basic CRUD operations, explore:
+
+- [Advanced Queries](/database/advanced-queries) for joins, transactions, and complex queries
+- [PDO Introduction](/database/pdo-introduction) for connection fundamentals
+- [MySQL Integration](/database/mysql-integration) for schema design

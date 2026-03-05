@@ -1,0 +1,604 @@
+---
+title: Weather APIs
+description: Integrate OpenWeatherMap and Open-Meteo weather services in PHP
+---
+
+# Weather APIs Integration
+
+Learn how to integrate popular weather APIs into your PHP applications. This guide covers OpenWeatherMap and Open-Meteo, two widely-used weather data services.
+
+## Comparison of Weather APIs
+
+| Feature | OpenWeatherMap | Open-Meteo | AEMET |
+|---------|----------------|------------|-------|
+| Coverage | Global | Global | Spain only |
+| API Key Required | Yes (free tier available) | No | Yes (free) |
+| Data Points | Current, forecast, historical | Current, forecast, historical | Spanish weather data |
+| Rate Limits | 60 calls/minute (free) | Generous | Moderate |
+| Response Format | JSON | JSON | JSON |
+| Best For | Production apps | Development, free projects | Spanish weather |
+
+<Note>
+Choose the API that best fits your project requirements. Open-Meteo is excellent for development with no API key, while OpenWeatherMap offers comprehensive data for production.
+</Note>
+
+## OpenWeatherMap Integration
+
+### Getting Your API Key
+
+<Steps>
+  <Step title="Create Account">
+    Visit [OpenWeatherMap](https://openweathermap.org/price) and sign up
+  </Step>
+
+  <Step title="Choose Plan">
+    Select the Free tier under "Professional collections"
+  </Step>
+
+  <Step title="Get API Key">
+    Navigate to API keys section and copy your key
+  </Step>
+
+  <Step title="Activate Key">
+    Wait a few hours for key activation (can take 1-2 hours)
+  </Step>
+</Steps>
+
+### Two-Step Process: Geocoding + Weather
+
+OpenWeatherMap typically requires two API calls:
+
+#### Step 1: Geocoding API
+
+Convert city name to coordinates:
+
+```php
+<?php
+
+$curl = curl_init();
+$urlBase = 'http://api.openweathermap.org/geo/1.0/direct?';
+
+include("../../claves.inc.php");
+
+$ciudad = 'Vigo';
+$url = $urlBase . 'q=' . $ciudad . '&limit=5' . "&appid=" . $keyOpenWeatherMap;
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => $url,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "GET",
+  CURLOPT_HTTPHEADER => array(
+    "cache-control: no-cache"
+  ),
+));
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+curl_close($curl);
+
+if (!$err) {
+  $locations = json_decode($response, true);
+  
+  // Extract coordinates from first result
+  if (!empty($locations)) {
+    $lat = $locations[0]['lat'];
+    $lon = $locations[0]['lon'];
+    
+    echo "Coordinates for $ciudad: $lat, $lon\n";
+  }
+}
+```
+
+#### Step 2: Current Weather API
+
+Fetch weather data using coordinates:
+
+```php
+<?php
+
+$curl = curl_init();
+$urlBase = 'https://api.openweathermap.org/data/2.5/weather?';
+
+$ciudad = 'Vigo';
+$lat = '42.264799151433';
+$lon = '-8.765128490705925';
+
+include("../../claves.inc.php");
+
+$url = $urlBase . '&lat=' . $lat . "&lon=" . $lon . "&units=metric" . "&lang=es" . "&appid=" . $keyOpenWeatherMap;
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => $url,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "GET",
+  CURLOPT_HTTPHEADER => array(
+    "cache-control: no-cache"
+  ),
+));
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  $salida = json_decode($response, true);
+  print_r($salida);
+}
+```
+
+### OpenWeatherMap Response Format
+
+Here's a real example response from the course repository:
+
+```json
+{
+  "coord": {
+    "lon": -8.7651,
+    "lat": 42.2648
+  },
+  "weather": [
+    {
+      "id": 800,
+      "main": "Clear",
+      "description": "cielo claro",
+      "icon": "01d"
+    }
+  ],
+  "base": "stations",
+  "main": {
+    "temp": 18.99,
+    "feels_like": 18.28,
+    "temp_min": 18.51,
+    "temp_max": 18.99,
+    "pressure": 1019,
+    "humidity": 51
+  },
+  "visibility": 10000,
+  "wind": {
+    "speed": 5.66,
+    "deg": 30,
+    "gust": 10.8
+  },
+  "clouds": {
+    "all": 0
+  },
+  "dt": 1684000812,
+  "sys": {
+    "type": 2,
+    "id": 2012195,
+    "country": "ES",
+    "sunrise": 1683954988,
+    "sunset": 1684007188
+  },
+  "timezone": 7200,
+  "id": 3126577,
+  "name": "Cangas do Morrazo",
+  "cod": 200
+}
+```
+
+### Processing OpenWeatherMap Data
+
+```php
+$weather = json_decode($response, true);
+
+// Extract key information
+$temperature = $weather['main']['temp'];
+$feelsLike = $weather['main']['feels_like'];
+$description = $weather['weather'][0]['description'];
+$humidity = $weather['main']['humidity'];
+$windSpeed = $weather['wind']['speed'];
+$cityName = $weather['name'];
+
+echo "Weather in $cityName:\n";
+echo "Temperature: $temperature°C (feels like $feelsLike°C)\n";
+echo "Conditions: $description\n";
+echo "Humidity: $humidity%\n";
+echo "Wind: $windSpeed m/s\n";
+```
+
+### URL Parameters Explained
+
+| Parameter | Description | Example |
+|-----------|-------------|--------|
+| `lat` | Latitude coordinate | `42.264799` |
+| `lon` | Longitude coordinate | `-8.765128` |
+| `units` | Temperature units | `metric` (Celsius), `imperial` (Fahrenheit) |
+| `lang` | Language for descriptions | `es` (Spanish), `en` (English) |
+| `appid` | Your API key | `your_api_key` |
+
+<Note>
+Use `units=metric` for Celsius and `lang=es` for Spanish descriptions in your weather app.
+</Note>
+
+## Open-Meteo Integration
+
+### Advantages of Open-Meteo
+
+- No API key required
+- High rate limits
+- Excellent for development and testing
+- Simple, clean API design
+- Free for non-commercial use
+
+### Basic Current Weather Request
+
+```php
+<?php
+
+// https://open-meteo.com/
+
+$curl = curl_init();
+
+$urlBase = 'https://api.open-meteo.com/v1/forecast?';
+$ciudad = 'Vigo';
+$lat = '42.264799151433';
+$lon = '-8.765128490705925';
+
+$url = $urlBase . 'latitude=' . $lat . '&longitude=' . $lon . '&current=temperature_2m,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m';
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => $url,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "GET",
+  CURLOPT_HTTPHEADER => array(
+    "cache-control: no-cache"
+  ),
+));
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  $salida = json_decode($response, true);
+  print_r($salida);
+}
+
+echo "FIN" . PHP_EOL;
+```
+
+### Historical Data with Open-Meteo
+
+Retrieve past weather data:
+
+```php
+<?php
+
+$curl = curl_init();
+
+$urlBase = 'https://api.open-meteo.com/v1/forecast?';
+$ciudad = 'Vigo';
+$lat = '42.264799151433';
+$lon = '-8.765128490705925';
+
+// Request last 10 days of data
+$url = $urlBase . 'latitude=' . $lat . '&longitude=' . $lon . '&past_days=10&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m';
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => $url,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "GET",
+  CURLOPT_HTTPHEADER => array(
+    "cache-control: no-cache"
+  ),
+));
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  $salida = json_decode($response, true);
+  print_r($salida);
+}
+
+echo "FIN" . PHP_EOL;
+```
+
+### Open-Meteo URL Parameters
+
+| Parameter | Description | Example |
+|-----------|-------------|--------|
+| `latitude` | Latitude coordinate | `42.264799` |
+| `longitude` | Longitude coordinate | `-8.765128` |
+| `current` | Current weather variables | `temperature_2m,wind_speed_10m` |
+| `hourly` | Hourly forecast variables | `temperature_2m,relative_humidity_2m` |
+| `daily` | Daily forecast variables | `temperature_2m_max,precipitation_sum` |
+| `past_days` | Include historical data | `10` (last 10 days) |
+| `forecast_days` | Days of forecast | `7` (default) |
+
+### Available Weather Variables
+
+#### Current & Hourly Variables
+
+- `temperature_2m` - Temperature at 2 meters height
+- `relative_humidity_2m` - Relative humidity at 2 meters
+- `wind_speed_10m` - Wind speed at 10 meters height
+- `wind_direction_10m` - Wind direction
+- `precipitation` - Precipitation amount
+- `pressure_msl` - Sea level pressure
+- `cloud_cover` - Cloud cover percentage
+
+#### Daily Variables
+
+- `temperature_2m_max` - Maximum daily temperature
+- `temperature_2m_min` - Minimum daily temperature
+- `precipitation_sum` - Total daily precipitation
+- `sunrise` - Sunrise time
+- `sunset` - Sunset time
+
+<Note>
+All temperature values are in Celsius by default. Open-Meteo uses metric units.
+</Note>
+
+## Complete Weather App Example
+
+<CodeGroup>
+
+```php OpenWeatherMap
+<?php
+
+function getWeatherOpenWeatherMap($lat, $lon, $apiKey) {
+  $curl = curl_init();
+  $urlBase = 'https://api.openweathermap.org/data/2.5/weather?';
+  
+  $url = $urlBase . 'lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=es&appid=' . $apiKey;
+  
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => $url,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_CUSTOMREQUEST => "GET",
+  ));
+  
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+  curl_close($curl);
+  
+  if ($err) {
+    return array('error' => $err);
+  }
+  
+  return json_decode($response, true);
+}
+
+include("claves.inc.php");
+$weather = getWeatherOpenWeatherMap('42.2648', '-8.7651', $keyOpenWeatherMap);
+
+if (isset($weather['error'])) {
+  echo "Error: " . $weather['error'];
+} else {
+  echo "Temperature: " . $weather['main']['temp'] . "°C\n";
+  echo "Conditions: " . $weather['weather'][0]['description'] . "\n";
+}
+```
+
+```php Open-Meteo
+<?php
+
+function getWeatherOpenMeteo($lat, $lon) {
+  $curl = curl_init();
+  $urlBase = 'https://api.open-meteo.com/v1/forecast?';
+  
+  $url = $urlBase . 'latitude=' . $lat . '&longitude=' . $lon;
+  $url .= '&current=temperature_2m,relative_humidity_2m,wind_speed_10m';
+  
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => $url,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_CUSTOMREQUEST => "GET",
+  ));
+  
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+  curl_close($curl);
+  
+  if ($err) {
+    return array('error' => $err);
+  }
+  
+  return json_decode($response, true);
+}
+
+$weather = getWeatherOpenMeteo('42.2648', '-8.7651');
+
+if (isset($weather['error'])) {
+  echo "Error: " . $weather['error'];
+} else {
+  echo "Temperature: " . $weather['current']['temperature_2m'] . "°C\n";
+  echo "Humidity: " . $weather['current']['relative_humidity_2m'] . "%\n";
+}
+```
+
+</CodeGroup>
+
+## Debugging Weather API Requests
+
+Enable debugging to troubleshoot issues:
+
+```php
+// Enable detailed debugging (development only)
+curl_setopt($curl, CURLOPT_VERBOSE, true);
+curl_setopt($curl, CURLOPT_CERTINFO, true);
+
+$response = curl_exec($curl);
+
+// Display transfer information
+var_dump(curl_getinfo($curl));
+```
+
+<Warning>
+Never enable verbose mode in production. It outputs sensitive information and affects performance.
+</Warning>
+
+## Error Handling Best Practices
+
+```php
+function safeWeatherRequest($url) {
+  $curl = curl_init();
+  
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => $url,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_CUSTOMREQUEST => "GET",
+  ));
+  
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+  $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+  curl_close($curl);
+  
+  // Check for connection errors
+  if ($err) {
+    return array(
+      'success' => false,
+      'error' => 'Connection failed: ' . $err
+    );
+  }
+  
+  // Check HTTP status code
+  if ($httpCode >= 400) {
+    return array(
+      'success' => false,
+      'error' => 'HTTP error: ' . $httpCode
+    );
+  }
+  
+  // Parse JSON response
+  $data = json_decode($response, true);
+  
+  if (json_last_error() !== JSON_ERROR_NONE) {
+    return array(
+      'success' => false,
+      'error' => 'Invalid JSON: ' . json_last_error_msg()
+    );
+  }
+  
+  return array(
+    'success' => true,
+    'data' => $data
+  );
+}
+```
+
+## Performance Optimization
+
+### Caching Weather Data
+
+Weather data doesn't change every second. Cache responses to improve performance:
+
+```php
+function getCachedWeather($lat, $lon, $provider = 'openmeteo') {
+  $cacheFile = "cache/weather_{$provider}_" . md5($lat . $lon) . ".json";
+  $cacheTime = 600; // 10 minutes
+  
+  // Check cache
+  if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTime) {
+    return json_decode(file_get_contents($cacheFile), true);
+  }
+  
+  // Fetch fresh data
+  if ($provider === 'openmeteo') {
+    $weather = getWeatherOpenMeteo($lat, $lon);
+  } else {
+    // Use OpenWeatherMap or other provider
+    $weather = getWeatherOpenWeatherMap($lat, $lon, $GLOBALS['keyOpenWeatherMap']);
+  }
+  
+  // Save to cache
+  if (!isset($weather['error'])) {
+    if (!is_dir('cache')) mkdir('cache');
+    file_put_contents($cacheFile, json_encode($weather));
+  }
+  
+  return $weather;
+}
+```
+
+### Batch Requests
+
+When fetching weather for multiple locations, implement delays:
+
+```php
+$locations = [
+  ['name' => 'Vigo', 'lat' => '42.2648', 'lon' => '-8.7651'],
+  ['name' => 'Madrid', 'lat' => '40.4168', 'lon' => '-3.7038'],
+  ['name' => 'Barcelona', 'lat' => '41.3851', 'lon' => '2.1734'],
+];
+
+foreach ($locations as $location) {
+  $weather = getWeatherOpenMeteo($location['lat'], $location['lon']);
+  
+  echo $location['name'] . ": " . $weather['current']['temperature_2m'] . "°C\n";
+  
+  // Delay between requests to respect rate limits
+  usleep(100000); // 100ms delay
+}
+```
+
+## Comparison: Which API to Choose?
+
+### Use OpenWeatherMap when:
+
+- Building production applications
+- Need comprehensive weather data
+- Require weather icons and visual assets
+- Want multiple language support
+- Need historical data archives
+
+### Use Open-Meteo when:
+
+- Developing or prototyping
+- Budget constraints (it's free)
+- No API key management desired
+- European weather focus
+- Scientific/research projects
+
+### Use AEMET when:
+
+- Working with Spanish locations
+- Need official meteorological data
+- Require detailed Spanish forecasts
+- Want data from official Spanish weather stations
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="OpenWeatherMap Docs" icon="cloud" href="https://openweathermap.org/api">
+    Official API documentation
+  </Card>
+  <Card title="Open-Meteo Docs" icon="sun" href="https://open-meteo.com/en/docs">
+    Open-Meteo API reference
+  </Card>
+  <Card title="AEMET Integration" icon="cloud-sun" href="/api-integration/aemet-api">
+    Spanish weather data integration
+  </Card>
+  <Card title="External Services" icon="globe" href="/api-integration/external-services">
+    General API integration patterns
+  </Card>
+</CardGroup>

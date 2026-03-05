@@ -1,0 +1,898 @@
+---
+title: "Project Guidelines"
+description: "Detailed guidelines for TAREA projects including database design, diagram requirements, and code structure standards"
+---
+
+# Project Guidelines
+
+This guide provides comprehensive requirements and best practices for completing TAREA projects in the DWCS course. Follow these guidelines to ensure your submissions meet professional standards.
+
+## Database Design Principles
+
+### Normalization Requirements
+
+All TAREA databases must be properly normalized to avoid data redundancy and maintain integrity.
+
+<Steps>
+  <Step title="First Normal Form (1NF)">
+    - Each column contains atomic (indivisible) values
+    - Each column contains values of a single type
+    - Each column has a unique name
+    - No repeating groups or arrays
+  </Step>
+  
+  <Step title="Second Normal Form (2NF)">
+    - Must be in 1NF
+    - All non-key attributes depend on the entire primary key
+    - No partial dependencies
+  </Step>
+  
+  <Step title="Third Normal Form (3NF)">
+    - Must be in 2NF
+    - No transitive dependencies
+    - Non-key attributes depend only on the primary key
+  </Step>
+</Steps>
+
+### Common Database Patterns
+
+#### 1. Product Management (TAREA-04)
+
+```sql
+-- Example from TAREA-04: Project Database
+CREATE DATABASE proyecto 
+  DEFAULT CHARACTER SET utf8mb4 
+  COLLATE utf8mb4_unicode_ci;
+
+USE proyecto;
+
+-- Stores table
+CREATE TABLE IF NOT EXISTS tiendas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  tlf VARCHAR(13) NULL
+);
+
+-- Product families/categories
+CREATE TABLE IF NOT EXISTS familias (
+  cod VARCHAR(6) PRIMARY KEY,
+  nombre VARCHAR(200) NOT NULL
+);
+
+-- Products table
+CREATE TABLE IF NOT EXISTS productos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(200) NOT NULL,
+  nombre_corto VARCHAR(50) UNIQUE NOT NULL,
+  descripcion TEXT NULL,
+  pvp DECIMAL(10, 2) NOT NULL,
+  familia VARCHAR(6) NOT NULL,
+  CONSTRAINT fk_prod_fam 
+    FOREIGN KEY (familia) 
+    REFERENCES familias(cod)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
+-- Inventory/stock table (many-to-many)
+CREATE TABLE IF NOT EXISTS stocks (
+  producto INT,
+  tienda INT,
+  unidades INT UNSIGNED NOT NULL,
+  CONSTRAINT pk_stock PRIMARY KEY (producto, tienda),
+  CONSTRAINT fk_stock_prod 
+    FOREIGN KEY (producto) 
+    REFERENCES productos(id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT fk_stock_tienda 
+    FOREIGN KEY (tienda) 
+    REFERENCES tiendas(id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+```
+
+<Note>
+  **Key Points:**
+  - Use `utf8mb4` for full Unicode support
+  - `DECIMAL` for money values, not `FLOAT`
+  - Composite primary key for junction tables
+  - Descriptive constraint names
+</Note>
+
+#### 2. E-Commerce System (TAREA-06)
+
+```sql
+-- Employees authentication
+CREATE TABLE empleados (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario VARCHAR(20) UNIQUE,
+  pass VARCHAR(64) NOT NULL
+);
+
+-- Customers registration
+CREATE TABLE IF NOT EXISTS clientes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(50) NOT NULL,
+  apellido1 VARCHAR(50) NOT NULL,
+  apellido2 VARCHAR(50),
+  direccion TEXT NULL,
+  telefono VARCHAR(10),
+  usuario VARCHAR(20) UNIQUE,
+  pass VARCHAR(64) NOT NULL
+);
+
+-- Sales/transactions table
+CREATE TABLE IF NOT EXISTS ventas (
+  id INT AUTO_INCREMENT NOT NULL,
+  ticket INT NOT NULL,
+  id_producto INT NOT NULL,
+  id_cliente INT NOT NULL,
+  id_empleado INT,
+  id_tienda INT,
+  pvp DECIMAL(10, 2) NOT NULL,
+  fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT pk_ventas PRIMARY KEY (id, ticket),
+  CONSTRAINT fk_ventas_productos 
+    FOREIGN KEY (id_producto) 
+    REFERENCES productos(id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_ventas_clientes 
+    FOREIGN KEY (id_cliente) 
+    REFERENCES clientes(id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_ventas_tienda 
+    FOREIGN KEY (id_tienda) 
+    REFERENCES tiendas(id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL,
+  CONSTRAINT fk_ventas_empleado 
+    FOREIGN KEY (id_empleado) 
+    REFERENCES empleados(id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL
+);
+```
+
+<Warning>
+  **CASCADE Actions Matter:**
+  - `ON DELETE RESTRICT`: Prevent deletion if referenced
+  - `ON DELETE CASCADE`: Delete dependent records automatically
+  - `ON DELETE SET NULL`: Keep record but remove reference
+</Warning>
+
+### User Management Pattern
+
+```sql
+-- Create database user with appropriate permissions
+DROP USER IF EXISTS gestor@'localhost';
+CREATE USER gestor@'localhost' IDENTIFIED BY 'secreto';
+GRANT ALL ON tarea06.* TO gestor@'localhost';
+```
+
+## Required Diagrams
+
+### 1. Database Diagram (Required for all TAREs)
+
+Your project must include a visual representation of the database structure.
+
+<Tabs>
+  <Tab title="Entity-Relationship (ER) Diagram">
+    Shows entities, attributes, and relationships
+    
+    **Tools:**
+    - MySQL Workbench
+    - draw.io
+    - dbdiagram.io
+    
+    **Must Include:**
+    - All tables as entities
+    - Primary keys marked
+    - Foreign key relationships with lines
+    - Cardinality indicators (1:1, 1:N, N:M)
+  </Tab>
+  
+  <Tab title="Relational Model Diagram">
+    Shows tables with columns and data types
+    
+    **Example from TAREA-04:**
+    ```
+    TIENDAS
+    -------
+    PK: id (INT)
+        nombre (VARCHAR)
+        tlf (VARCHAR)
+    
+    PRODUCTOS
+    ---------
+    PK: id (INT)
+        nombre (VARCHAR)
+        nombre_corto (VARCHAR)
+        descripcion (TEXT)
+        pvp (DECIMAL)
+    FK: familia → FAMILIAS(cod)
+    ```
+    
+    **Must Include:**
+    - Table names
+    - All columns with data types
+    - Primary keys (PK)
+    - Foreign keys (FK) with references
+  </Tab>
+</Tabs>
+
+### 2. Navigation Diagram (Required for complex projects)
+
+Shows the flow between pages in your application.
+
+**Example from TAREA-04:**
+
+```
+[login.php] → [listado.php] ↔ [detalle.php]
+                    ↓
+              [crear.php]
+                    ↓
+         [crear_formularioalta.php]
+                    ↓
+         [crear_guardardatos.php]
+                    ↓
+              [listado.php]
+```
+
+<CardGroup cols={2}>
+  <Card title="Navigation Elements" icon="sitemap">
+    - Entry points (login, index)
+    - Main pages (listado, dashboard)
+    - Form pages
+    - Processing scripts
+    - Exit points (logout, cerrar)
+  </Card>
+  
+  <Card title="Show Interactions" icon="arrows-alt">
+    - Links between pages
+    - Form submissions
+    - Redirects after operations
+    - Authentication barriers
+  </Card>
+</CardGroup>
+
+## Project Structure Standards
+
+### Recommended Directory Organization
+
+```
+TAREA-XX/
+├── sql/
+│   ├── esquema.sql           # Database schema
+│   ├── datos.sql             # Sample data
+│   └── diagrama-modelo.png   # Database diagram
+├── src/                      # PHP classes (if using OOP)
+│   ├── Conexion.php
+│   ├── Producto.php
+│   └── Usuario.php
+├── public/                   # Web-accessible files
+│   ├── index.php
+│   ├── listado.php
+│   ├── detalle.php
+│   ├── css/
+│   └── js/
+├── views/                    # Templates (if using Blade/Twig)
+│   ├── layout.blade.php
+│   └── productos/
+│       ├── list.blade.php
+│       └── detail.blade.php
+├── cache/                    # Compiled templates
+├── vendor/                   # Composer dependencies
+├── composer.json
+├── composer.lock
+├── diagrama-navegacion.png   # Navigation diagram
+└── README.md
+```
+
+<Note>
+  **For Simple Projects (TAREA-02, TAREA-03):**
+  
+  You may use a flatter structure without `src/` and `public/` directories, but still organize SQL files in a dedicated folder.
+</Note>
+
+### File Naming Conventions
+
+<CardGroup cols={2}>
+  <Card title="PHP Files" icon="file-code">
+    - Use descriptive names: `crear_formularioalta.php`
+    - Lowercase with underscores
+    - Action + context: `update_guardardatos.php`
+  </Card>
+  
+  <Card title="SQL Files" icon="database">
+    - `esquema.sql` for structure
+    - `datos.sql` for sample data
+    - `[dbname]-completo.sql` for full export
+  </Card>
+</CardGroup>
+
+## Code Quality Standards
+
+### 1. Database Connection Pattern
+
+**conexion.php** (all projects should follow this pattern):
+
+```php
+<?php
+/**
+ * Database Connection Configuration
+ * TAREA-XX: [Project Name]
+ */
+
+$host = 'localhost';
+$dbname = 'tarea06';
+$user = 'gestor';
+$password = 'secreto';
+
+try {
+    $conProyecto = new PDO(
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $user,
+        $password,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
+} catch (PDOException $e) {
+    die("Error de conexión: " . $e->getMessage());
+}
+
+/**
+ * Helper function to close connections
+ */
+function cerrarTodo($conexion, $stmt = null) {
+    if ($stmt !== null) {
+        $stmt = null;
+    }
+    $conexion = null;
+}
+?>
+```
+
+<Warning>
+  **Always Use Prepared Statements:**
+  
+  Never concatenate user input directly into SQL queries. Always use prepared statements with parameter binding to prevent SQL injection.
+</Warning>
+
+### 2. CRUD Operations Pattern
+
+#### Create (INSERT)
+
+```php
+<?php
+require_once 'conexion.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nombre = filter_input(INPUT_POST, 'nombre', FILTER_SANITIZE_STRING);
+    $pvp = filter_input(INPUT_POST, 'pvp', FILTER_VALIDATE_FLOAT);
+    $familia = filter_input(INPUT_POST, 'familia', FILTER_SANITIZE_STRING);
+    
+    if ($nombre && $pvp && $familia) {
+        $sql = "INSERT INTO productos (nombre, pvp, familia) 
+                VALUES (:nombre, :pvp, :familia)";
+        $stmt = $conProyecto->prepare($sql);
+        
+        try {
+            $stmt->execute([
+                ':nombre' => $nombre,
+                ':pvp' => $pvp,
+                ':familia' => $familia
+            ]);
+            
+            header('Location: listado.php?success=1');
+            exit();
+        } catch (PDOException $e) {
+            $error = "Error al crear producto: " . $e->getMessage();
+        }
+    } else {
+        $error = "Datos inválidos";
+    }
+}
+?>
+```
+
+#### Read (SELECT)
+
+```php
+<?php
+require_once 'conexion.php';
+
+// List all products
+$sql = "SELECT p.id, p.nombre, p.pvp, f.nombre as familia_nombre
+        FROM productos p
+        INNER JOIN familias f ON p.familia = f.cod
+        ORDER BY p.nombre";
+
+$stmt = $conProyecto->prepare($sql);
+
+try {
+    $stmt->execute();
+    $productos = $stmt->fetchAll();
+} catch (PDOException $e) {
+    die("Error al recuperar productos: " . $e->getMessage());
+}
+?>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Listado de Productos</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-3">
+        <h3>Gestión de Productos</h3>
+        <a href="crear.php" class="btn btn-success mb-2">Nuevo Producto</a>
+        
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Familia</th>
+                    <th>PVP</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($productos as $producto): ?>
+                <tr>
+                    <td><?= htmlspecialchars($producto->id) ?></td>
+                    <td><?= htmlspecialchars($producto->nombre) ?></td>
+                    <td><?= htmlspecialchars($producto->familia_nombre) ?></td>
+                    <td><?= number_format($producto->pvp, 2) ?> €</td>
+                    <td>
+                        <a href="detalle.php?id=<?= $producto->id ?>" 
+                           class="btn btn-info btn-sm">Detalle</a>
+                        <a href="update.php?id=<?= $producto->id ?>" 
+                           class="btn btn-warning btn-sm">Editar</a>
+                        <form method="POST" action="borrar.php" 
+                              style="display:inline">
+                            <input type="hidden" name="id" 
+                                   value="<?= $producto->id ?>">
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('¿Eliminar?')">
+                                Borrar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+```
+
+<Note>
+  **Security Best Practices:**
+  - Always use `htmlspecialchars()` when outputting data to HTML
+  - Use `number_format()` for currency display
+  - Confirm destructive actions with JavaScript
+</Note>
+
+#### Update (UPDATE)
+
+```php
+<?php
+require_once 'conexion.php';
+
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+
+if (!$id) {
+    header('Location: listado.php');
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nombre = filter_input(INPUT_POST, 'nombre', FILTER_SANITIZE_STRING);
+    $pvp = filter_input(INPUT_POST, 'pvp', FILTER_VALIDATE_FLOAT);
+    
+    $sql = "UPDATE productos SET nombre = :nombre, pvp = :pvp 
+            WHERE id = :id";
+    $stmt = $conProyecto->prepare($sql);
+    
+    try {
+        $stmt->execute([
+            ':nombre' => $nombre,
+            ':pvp' => $pvp,
+            ':id' => $id
+        ]);
+        
+        header('Location: listado.php?updated=1');
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error al actualizar: " . $e->getMessage();
+    }
+}
+
+// Fetch current data
+$sql = "SELECT * FROM productos WHERE id = :id";
+$stmt = $conProyecto->prepare($sql);
+$stmt->execute([':id' => $id]);
+$producto = $stmt->fetch();
+
+if (!$producto) {
+    header('Location: listado.php');
+    exit();
+}
+?>
+```
+
+#### Delete (DELETE)
+
+```php
+<?php
+require_once 'conexion.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+    
+    if ($id) {
+        $sql = "DELETE FROM productos WHERE id = :id";
+        $stmt = $conProyecto->prepare($sql);
+        
+        try {
+            $stmt->execute([':id' => $id]);
+            header('Location: listado.php?deleted=1');
+            exit();
+        } catch (PDOException $e) {
+            // Handle foreign key constraint errors
+            if ($e->getCode() == 23000) {
+                header('Location: listado.php?error=fk');
+            } else {
+                header('Location: listado.php?error=db');
+            }
+            exit();
+        }
+    }
+}
+
+header('Location: listado.php');
+exit();
+?>
+```
+
+### 3. Session Management Pattern
+
+**login.php:**
+
+```php
+<?php
+session_start();
+require_once 'conexion.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $usuario = filter_input(INPUT_POST, 'usuario', FILTER_SANITIZE_STRING);
+    $password = $_POST['password'] ?? '';
+    
+    $sql = "SELECT id, usuario, pass FROM clientes 
+            WHERE usuario = :usuario";
+    $stmt = $conProyecto->prepare($sql);
+    $stmt->execute([':usuario' => $usuario]);
+    
+    $user = $stmt->fetch();
+    
+    if ($user && password_verify($password, $user->pass)) {
+        $_SESSION['usuario_id'] = $user->id;
+        $_SESSION['nombre'] = $user->usuario;
+        
+        header('Location: listado.php');
+        exit();
+    } else {
+        $error = "Credenciales inválidas";
+    }
+}
+?>
+```
+
+<Warning>
+  **Password Security:**
+  - Always use `password_hash()` to store passwords
+  - Use `password_verify()` to check passwords
+  - Never store plain text passwords
+  - Use `PASSWORD_DEFAULT` algorithm
+</Warning>
+
+**Protected Page Pattern:**
+
+```php
+<?php
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION['nombre'])) {
+    header('Location: login.php');
+    exit();
+}
+
+require_once 'conexion.php';
+// Rest of your code...
+?>
+```
+
+**Logout (cerrar.php):**
+
+```php
+<?php
+session_start();
+session_unset();
+session_destroy();
+
+header('Location: login.php');
+exit();
+?>
+```
+
+## Composer Integration (TAREA-05+)
+
+### composer.json Structure
+
+```json
+{
+    "name": "usuario/tarea05",
+    "description": "TAREA-05: Sessions and Templating",
+    "type": "project",
+    "license": "MIT",
+    "config": {
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "kylekatarnls/update-helper": true
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Clases\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Your Name",
+            "email": "your.email@example.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "philo/laravel-blade": "^3.1",
+        "milon/barcode": "^6.0",
+        "fakerphp/faker": "^1.20"
+    }
+}
+```
+
+<Note>
+  **Important**: Use `fakerphp/faker` instead of the deprecated `fzaninotto/faker` package.
+</Note>
+
+### PSR-4 Autoloading
+
+**src/Conexion.php:**
+
+```php
+<?php
+namespace Clases;
+
+use PDO;
+use PDOException;
+
+class Conexion {
+    private static $instancia = null;
+    private $pdo;
+    
+    private function __construct() {
+        $host = 'localhost';
+        $dbname = 'tarea05';
+        $user = 'gestor';
+        $password = 'secreto';
+        
+        try {
+            $this->pdo = new PDO(
+                "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+                $user,
+                $password,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ
+                ]
+            );
+        } catch (PDOException $e) {
+            die("Error: " . $e->getMessage());
+        }
+    }
+    
+    public static function getInstance() {
+        if (self::$instancia === null) {
+            self::$instancia = new self();
+        }
+        return self::$instancia;
+    }
+    
+    public function getConexion() {
+        return $this->pdo;
+    }
+}
+?>
+```
+
+**Usage in your files:**
+
+```php
+<?php
+require_once __DIR__ . '/vendor/autoload.php';
+
+use Clases\Conexion;
+
+$db = Conexion::getInstance()->getConexion();
+// Use $db for queries...
+?>
+```
+
+## Documentation Requirements
+
+### README.md Template
+
+```markdown
+# TAREA-XX: [Project Name]
+
+## Description
+Brief description of the project and its purpose.
+
+## Prerequisites
+- PHP 7.4 or higher
+- MySQL 5.7 or higher
+- Apache web server
+- Composer (if using external libraries)
+
+## Installation
+
+### 1. Database Setup
+```sql
+-- Import the database schema
+source sql/esquema.sql
+
+-- Import sample data
+source sql/datos.sql
+```
+
+### 2. Configuration
+Edit `conexion.php` and update database credentials:
+```php
+$host = 'localhost';
+$dbname = 'tarea06';
+$user = 'your_user';
+$password = 'your_password';
+```
+
+### 3. Composer Dependencies (if applicable)
+```bash
+composer install
+```
+
+## Usage
+1. Start your Apache and MySQL servers
+2. Navigate to `http://localhost/TAREA-XX/`
+3. Default credentials (if applicable):
+   - Username: `admin`
+   - Password: `password`
+
+## Features
+- Feature 1: Description
+- Feature 2: Description
+- Feature 3: Description
+
+## Project Structure
+```
+TAREA-XX/
+├── sql/              Database files
+├── src/              PHP classes
+├── public/           Web-accessible files
+└── README.md
+```
+
+## Author
+Your Name - Course 2025-26
+```
+
+## Common Mistakes to Avoid
+
+<CardGroup cols={2}>
+  <Card title="Database Errors" icon="database">
+    - Missing foreign key constraints
+    - Wrong data types (FLOAT for money)
+    - No character set specification
+    - Missing ON DELETE/UPDATE actions
+  </Card>
+  
+  <Card title="Security Issues" icon="shield-alt">
+    - Not using prepared statements
+    - Plain text passwords
+    - No input validation
+    - Missing `htmlspecialchars()`
+  </Card>
+  
+  <Card title="Code Organization" icon="folder-tree">
+    - All code in one file
+    - No separation of concerns
+    - Hardcoded values everywhere
+    - No code reuse
+  </Card>
+  
+  <Card title="Documentation" icon="file-alt">
+    - Missing diagrams
+    - No setup instructions
+    - Incomplete SQL files
+    - No comments in complex code
+  </Card>
+</CardGroup>
+
+## Submission Checklist
+
+Before submitting your TAREA, verify:
+
+<Steps>
+  <Step title="Database Files">
+    - [ ] `esquema.sql` creates all tables correctly
+    - [ ] `datos.sql` includes sample data for testing
+    - [ ] Database diagram (PNG or PDF) included
+    - [ ] All foreign keys defined with proper actions
+  </Step>
+  
+  <Step title="Source Code">
+    - [ ] All files use UTF-8 encoding
+    - [ ] Prepared statements for all database queries
+    - [ ] Input validation on all forms
+    - [ ] Proper error handling with try-catch
+    - [ ] `htmlspecialchars()` on all output
+  </Step>
+  
+  <Step title="Functionality">
+    - [ ] All CRUD operations work correctly
+    - [ ] Forms validate data before submission
+    - [ ] Error messages display appropriately
+    - [ ] Success redirects work properly
+    - [ ] Sessions managed correctly (if applicable)
+  </Step>
+  
+  <Step title="Documentation">
+    - [ ] README.md with setup instructions
+    - [ ] Navigation diagram included
+    - [ ] Comments explain complex logic
+    - [ ] Code follows PSR standards (if using OOP)
+  </Step>
+  
+  <Step title="Testing">
+    - [ ] Tested on fresh database install
+    - [ ] All links and forms work
+    - [ ] No PHP errors or warnings
+    - [ ] Cross-browser tested (if applicable)
+  </Step>
+</Steps>
+
+## Additional Resources
+
+<CardGroup cols={3}>
+  <Card title="Assignment Overview" href="/assignments/overview">
+    Review general TAREA structure
+  </Card>
+  
+  <Card title="Exam Samples" href="/assignments/exam-samples">
+    See practical exam examples
+  </Card>
+  
+  <Card title="Course Topics" href="/topics">
+    Review technical content
+  </Card>
+</CardGroup>

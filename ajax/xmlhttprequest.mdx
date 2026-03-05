@@ -1,0 +1,282 @@
+---
+title: XMLHttpRequest Basics
+description: Understanding XMLHttpRequest for AJAX communication in web applications
+---
+
+## Introduction to XMLHttpRequest
+
+XMLHttpRequest (XHR) is the core technology behind AJAX (Asynchronous JavaScript and XML). It allows web applications to send and receive data from a server asynchronously without requiring a full page reload.
+
+<Note>
+While modern applications often use the Fetch API, XMLHttpRequest remains important for understanding AJAX fundamentals and maintaining legacy code.
+</Note>
+
+## Basic XMLHttpRequest Structure
+
+The basic workflow for making an AJAX request involves three main steps:
+
+<Steps>
+  <Step title="Create the XMLHttpRequest object">
+    Instantiate a new XMLHttpRequest object to handle the request.
+  </Step>
+  
+  <Step title="Configure the request">
+    Use the `open()` method to specify the HTTP method and URL.
+  </Step>
+  
+  <Step title="Send the request">
+    Call `send()` to dispatch the request and set up event listeners for the response.
+  </Step>
+</Steps>
+
+### Simple GET Request Example
+
+Here's a basic example that fetches the server date and time:
+
+<CodeGroup>
+```html index.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>DWCS07 - AJAX Request Example</title>
+    <script type="text/javascript">
+      let peticion;
+      
+      const iniciar = () => {
+        // 1. Create XMLHttpRequest object
+        peticion = new XMLHttpRequest();
+        
+        // 2. Configure the request
+        peticion.open('GET', "fecha.php"); 
+        
+        // 3. Send the request
+        peticion.send();
+        
+        // 4. Set up event listener for response
+        peticion.addEventListener("load", cargada);
+        
+        document.getElementById("estado").classList = [ 'cargando' ];
+        document.getElementById("estado").innerText = "Cargando...";
+      }
+
+      const cargada = () => {
+        document.getElementById("resultados").innerText = peticion.responseText;
+        document.getElementById("estado").classList = [ 'cargada' ];
+        document.getElementById("estado").innerText = "Cargada.";
+      }
+
+      window.addEventListener("load", iniciar, false);
+    </script>
+    <style>
+      #resultados {
+        background: yellow;
+      }
+      .cargando {
+        background: red;
+      }
+      .cargada {
+        background: green;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      A continuación se cargarán por AJAX los datos recibidos en la solicitud ASINCRONA:
+    </p>
+    <p>
+      Esta solicitud tardará 2 segundos aproximadamente, 
+      que es el tiempo de ejecución de la página PHP en el servidor
+    </p>
+    <p>
+      Contenedor resultados:
+      <div id="resultados"></div>
+    </p>
+    <p>
+      Estado de las solicitudes:
+      <div id="estado"></div>
+    </p>
+  </body>
+</html>
+```
+
+```php fecha.php
+<?php
+  // Retrasamos 2 segundos la ejecución de esta página PHP.
+  sleep(2);
+  
+  // Mostramos la fecha y hora del servidor web.
+  echo "La fecha y hora del Servidor Web: ";
+  echo date("j/n/Y G:i:s."); 
+?>
+```
+</CodeGroup>
+
+## Sending Parameters with GET
+
+You can send parameters to the server by appending them to the URL:
+
+```javascript
+const iniciar = () => {
+  peticion = new XMLHttpRequest();
+  peticion.open('GET', "procesar.php?nombre=Bob&apellidos=Esponja"); 
+  peticion.send();
+  peticion.addEventListener("load", cargada);
+}
+
+const cargada = () => {
+  document.getElementById("resultados").innerHTML = peticion.responseText;
+}
+```
+
+### Server-Side Processing
+
+```php
+<?php
+  // Imprimimos un mensaje con los textos recibidos
+  if (isset($_GET['nombre']))
+    echo "<p>Saludos GET desde el servidor: hola {$_GET['nombre']} {$_GET['apellidos']}.</p>";
+  else if (isset($_POST['nombre']))
+    echo "Saludos POST desde el servidor: hola {$_POST['nombre']} {$_POST['apellidos']}. ";
+    
+  // Mostramos la fecha y hora del servidor web.
+  echo "<p>La fecha y hora del Servidor Web: ";
+  echo date("j/n/Y G:i:s"); 
+  echo "</p>";
+?>
+```
+
+## XMLHttpRequest Methods
+
+### open(method, url, async)
+
+Initializes a request. Parameters:
+- `method`: HTTP method (GET, POST, PUT, DELETE, etc.)
+- `url`: The URL to send the request to
+- `async`: Boolean indicating whether the request should be asynchronous (default: true)
+
+<Warning>
+Always use asynchronous requests (`async = true`) to avoid blocking the browser UI.
+</Warning>
+
+### send(body)
+
+Sends the request to the server. For POST requests, you can pass data in the body parameter:
+
+```javascript
+peticion.open('POST', "procesar.php");
+peticion.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+peticion.send("nombre=Bob&apellidos=Esponja");
+```
+
+## XMLHttpRequest Properties
+
+### responseText
+
+Contains the response as a text string:
+
+```javascript
+const cargada = () => {
+  console.log(peticion.responseText);
+  document.getElementById("resultado").innerText = peticion.responseText;
+}
+```
+
+### responseXML
+
+Contains the response as an XML document (when the server sends XML):
+
+```javascript
+const cargada = () => {
+  let cds = peticion.responseXML.documentElement.getElementsByTagName("CD");
+  for (let i = 0; i < cds.length; i++) {
+    console.log(cds[i].getElementsByTagName('TITLE')[0].innerHTML);
+  }
+}
+```
+
+### status
+
+The HTTP status code of the response (200, 404, 500, etc.):
+
+```javascript
+const cargada = () => {
+  if (peticion.status === 200) {
+    console.log("Success!");
+  } else {
+    console.error("Error: " + peticion.status);
+  }
+}
+```
+
+### readyState
+
+Indicates the state of the request:
+- `0` (UNSENT): Client created, `open()` not called
+- `1` (OPENED): `open()` called
+- `2` (HEADERS_RECEIVED): `send()` called, headers received
+- `3` (LOADING): Downloading response
+- `4` (DONE): Operation complete
+
+## Event Listeners
+
+### load Event
+
+Fires when the request completes successfully:
+
+```javascript
+peticion.addEventListener("load", () => {
+  console.log("Request completed!");
+  console.log(peticion.responseText);
+});
+```
+
+### error Event
+
+Fires when the request encounters an error:
+
+```javascript
+peticion.addEventListener("error", () => {
+  console.error("Request failed!");
+});
+```
+
+### progress Event
+
+Fires periodically while the request is in progress:
+
+```javascript
+peticion.addEventListener("progress", (event) => {
+  if (event.lengthComputable) {
+    let percentComplete = (event.loaded / event.total) * 100;
+    console.log(percentComplete + "% downloaded");
+  }
+});
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Always use event listeners">
+    Use `addEventListener()` instead of `onreadystatechange` for better code organization.
+  </Step>
+  
+  <Step title="Handle errors gracefully">
+    Always include error handling to manage network failures and server errors.
+  </Step>
+  
+  <Step title="Provide user feedback">
+    Show loading indicators and status messages to improve user experience.
+  </Step>
+  
+  <Step title="Use async requests">
+    Never use synchronous requests as they block the browser UI.
+  </Step>
+</Steps>
+
+## Next Steps
+
+Now that you understand XMLHttpRequest basics, explore:
+- [Asynchronous request patterns](/ajax/asynchronous-requests)
+- [Working with different data formats](/ajax/asynchronous-requests#data-formats)
+- [The Jaxon library for PHP](/ajax/jaxon-library)
